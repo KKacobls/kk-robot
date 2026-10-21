@@ -1,0 +1,4 @@
+# Install alongside the existing llmcord requirements in ~/kk-robot
+# Existing llmcord requirements already provide discord.py and aiohttp.
+discord.py>=2.5,<3
+aiohttp>=3.10,<4
