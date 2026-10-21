@@ -6,19 +6,20 @@
 
 ## 已實作的功能
 
-- Discord 原生 **Reply**：新訊息先回覆 `🤔 思考中…`，模型回傳後 `edit` 同一則訊息；忽略其他 Bot、Webhooks、DM。
+- Discord 原生 **Reply**：不發送「🤔 思考中…」佔位訊息，僅顯示 Discord 的輸入中狀態；答案完成後才發送原生 Reply；忽略其他 Bot、Webhooks、DM。
 - 管理介面列出 Bot 在所選 Discord 伺服器**可查看的文字頻道**；無發言權限者停用勾選；新增頻道重新整理可見。
 - **預設全部頻道未勾選，沒有勾選就完全不會自動回覆**；管理員手動勾選並儲存，立即生效。三種模式：只在 @ 時回覆、指定頻道全訊息、混合模式。
 - 各伺服器設定以 SQLite 分離；按需讀取同一 Discord 頻道／討論串最近 50 則訊息，並依 18k 字元上限截斷，不會回覆舊訊息。
 - Ollama `127.0.0.1:11555`，`qwen3.5:9b`、`qwen3.5:35b-a3b` 可選，`think=false`、`num_ctx=8192`，單一模型並行、最多 16 件待處理。
-- 按管理員開關使用 **DuckDuckGo HTML 免費搜尋**，支援 AI 工具呼叫和 `/search`，會回傳來源連結。搜尋 HTML 格式／速率限制可能改變，因此搜尋失敗會回報不可用，不假裝搜尋成功。
+- 按管理員開關使用 **DuckDuckGo HTML 免費搜尋**，即時資訊問題會強制先搜尋，普通問題仍允許 AI 工具呼叫，並支援 `/search`，會回傳來源連結。搜尋 HTML 格式／速率限制可能改變，因此搜尋失敗會回報不可用，不假裝搜尋成功。
 - 按管理員開關使用 **Docker 隔離 Python**：AI 可用 `run_python` 工具，或用 `/python` 指令。預設關閉；只有已列白名單的使用者或 Discord 伺服器管理員能使用。
+- 台中市太平區即時氣溫可直接查詢免金鑰 Open-Meteo API（附近網格估算、附時間及來源）；無法取得可靠數據時不編造溫度。
 - 網頁監控 Linux CPU、RAM、NVIDIA GPU 使用率與 VRAM（讀取 `/proc`、`nvidia-smi`），統計每伺服器請求數、輸入／輸出 Token、整體產生速度與錯誤次數。
 - 管理頁使用密碼驗證、綁定 `127.0.0.1`，API 資料不緩存、阻擋異來源 POST，Token 僅存在 `.env` 且加入 `.gitignore`。
 
 ## 重要限制
 
-1. 網路搜尋依賴第三方搜尋 HTML，可能被限速，不能保證每次都成功；其結果會提供給 AI，不保證內容正確。
+1. 網路搜尋依賴第三方搜尋 HTML，只取得搜尋結果標題與連結，可能被限速，**不等於完整閱讀與驗證網頁內容**；回答仍可能不精確。太平區氣溫則由 Open-Meteo 取得網格估算，不是測站實測。
 2. Python **絕不可直接在校園共用主機執行使用者的任意程式碼**。本程式的 Python 只走 Docker 容器：`--network none`、唯讀根目錄、無主機掛載、丟棄 capabilities、限制 CPU／RAM／程序／輸出／時間。但 Docker daemon 的存取權限本身可能相當於主機管理員權限；**未取得系統管理員核准之前，請讓 Python 功能保持關閉。** 強敵意程式碼應使用更強的虛擬化隔離與審計。
 3. 管理後台的 Basic Auth 只適合透過 SSH 隧道存取；**不可以直接將 8765 埠公開到 Internet**。
 4. Bot 必須具有 `View Channel`、`Send Messages`、`Read Message History`（討論串需 `Send Messages in Threads`），以及 Discord Developer Portal 的 **Message Content Intent**。
@@ -27,10 +28,10 @@
 
 ## 安裝（Ubuntu／WSL2，延用已安裝的 uv）
 
-你的 `~/kk-robot/.venv` 已經存在，原版 llmcord 依賴也已安裝。先在你原本的 `~/kk-robot` 專案根目錄**備份自己的修改並從 KKacobls/kk-robot 拉取新增檔案**；再安裝必要套件：
+使用獨立的 `~/kk-robot-v1` 專案，不要覆蓋舊的 `~/kk-robot`。在新版目錄安裝：
 
 ```bash
-cd ~/kk-robot
+cd ~/kk-robot-v1
 ~/.local/bin/uv pip install --python .venv/bin/python -r requirements-kk.txt
 cp .env.example .env
 chmod 600 .env
@@ -44,7 +45,7 @@ nano .env
 測試啟動：
 
 ```bash
-cd ~/kk-robot
+cd ~/kk-robot-v1
 .venv/bin/python kk_robot.py
 ```
 
@@ -80,7 +81,7 @@ ssh -p 26 -i "$env:USERPROFILE\.ssh\id_ed25519" -N -L 8765:127.0.0.1:8765 your-s
 測試：
 
 ```bash
-cd ~/kk-robot
+cd ~/kk-robot-v1
 PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python -m py_compile kk_robot.py core.py
 ```
