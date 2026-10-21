@@ -1,6 +1,6 @@
 import unittest
 from core import (should_reply, safe_http_url, SearchResultParser, parse_gpu_csv, clean_text_for_discord,
-                  needs_live_search, is_taiping_current_temp_question, format_taiping_weather)
+                  needs_live_search)
 
 class CoreTest(unittest.TestCase):
     def test_empty_off(self):
@@ -33,20 +33,17 @@ class CoreTest(unittest.TestCase):
         self.assertTrue(needs_live_search('台中市太平區幾度'))
         self.assertTrue(needs_live_search('現在股票的股價'))
         self.assertFalse(needs_live_search('Python 的 list 是什麼'))
-        self.assertTrue(is_taiping_current_temp_question('台中市太平區幾度'))
-        self.assertFalse(is_taiping_current_temp_question('台北市內湖區幾度'))
-    def test_valid_live_weather_is_sourced(self):
-        from datetime import datetime, timezone, timedelta
-        now = datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%dT%H:%M')
-        answer = format_taiping_weather({
-            'current': {'temperature_2m': 26, 'time': now},
-            'current_units': {'temperature_2m': '°C'}
-        })
-        self.assertIn('太平區附近目前約 **26°C**', answer)
-        self.assertIn('\n資料來源', answer)
-        self.assertNotIn('台北', answer)
-    def test_weather_rejects_unverified(self):
-        self.assertIsNone(format_taiping_weather({}))
-        self.assertIsNone(format_taiping_weather({'current': {'temperature_2m': 20}, 'current_units': {}}))
-        self.assertIsNone(format_taiping_weather({'current': {'temperature_2m': 20, 'time': '2020-01-01T12:00'}, 'current_units': {'temperature_2m': '°C'}}))
+        self.assertTrue(needs_live_search('高雄市前鎮區現在幾度'))
+        self.assertTrue(needs_live_search('昨天有什麼新消息'))
+    def test_search_snippet(self):
+        parser = SearchResultParser()
+        parser.feed('<a class="result__a" href="https://example.org/weather">天氣預報</a>'
+                    '<a class="result__snippet" href="https://example.org/weather">'
+                    '今天大致晴朗，氣溫請參考官方網站</a>')
+        self.assertEqual(parser.results[0]['url'], 'https://example.org/weather')
+        self.assertIn('今天大致晴朗', parser.results[0]['snippet'])
+    def test_search_disallows_private(self):
+        parser = SearchResultParser()
+        parser.feed('<a class="result__a" href="http://127.0.0.1:8765/">本機</a>')
+        self.assertFalse(parser.results)
 if __name__ == '__main__': unittest.main()
