@@ -120,3 +120,54 @@ def needs_live_search(text):
     """Questions that require fresh data must not rely on model memory."""
     return any(keyword in (text or '') for keyword in LIVE_KEYWORDS)
 
+
+
+def is_global_address(address):
+    """Allow only public, globally routable DNS results for external page reads."""
+    try:
+        return ipaddress.ip_address(address).is_global
+    except ValueError:
+        return False
+
+
+class ReadablePageParser(HTMLParser):
+    """Extract limited, readable text from HTML; ignore executable/decorative nodes."""
+    IGNORE = {'script', 'style', 'svg', 'noscript', 'header', 'footer',
+              'nav', 'aside', 'form', 'button', 'iframe'}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.skip = 0
+        self.parts = []
+        self.total = 0
+
+    def handle_starttag(self, tag, attrs):
+        if self.skip:
+            self.skip += 1
+        elif tag in self.IGNORE:
+            self.skip = 1
+        elif tag in ('p', 'li', 'h1', 'h2', 'h3', 'br', 'article', 'section'):
+            self._add('\n')
+
+    def handle_endtag(self, tag):
+        if self.skip:
+            self.skip -= 1
+        elif tag in ('p', 'li', 'h1', 'h2', 'h3', 'article', 'section'):
+            self._add('\n')
+
+    def handle_data(self, value):
+        if not self.skip and self.total < 9000:
+            self._add(value)
+
+    def _add(self, value):
+        if self.total >= 9000:
+            return
+        piece = value[:9000 - self.total]
+        self.total += len(piece)
+        self.parts.append(piece)
+
+    def text(self, limit=2500):
+        result = ''.join(self.parts)
+        result = re.sub(r'[ \t]+', ' ', result)
+        result = re.sub(r'\n[ \n]*', '\n', result)
+        return result.strip()[:limit]
