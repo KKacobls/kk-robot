@@ -137,5 +137,5 @@ def format_taiping_weather(data):
     source = ('https://api.open-meteo.com/v1/forecast?latitude=24.1265&'
               'longitude=120.7185&current=temperature_2m&timezone=Asia%2FTaipei')
     return (f'台中市太平區附近目前約 **{temperature:g}°C**（{timestamp}，台灣時間）。'
-            '\\n這是 Open-Meteo 對附近網格的即時估算，並非太平區各地的實測溫度。'
-            f'\\n資料來源：{source}')
+            '\n這是 Open-Meteo 對附近網格的即時估算，並非太平區各地的實測溫度。'
+            f'\n資料來源：{source}')
