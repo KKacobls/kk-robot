@@ -43,7 +43,7 @@ class CoreTest(unittest.TestCase):
             'current_units': {'temperature_2m': '°C'}
         })
         self.assertIn('太平區附近目前約 **26°C**', answer)
-        self.assertIn('\\n資料來源', answer)
+        self.assertIn('\n資料來源', answer)
         self.assertNotIn('台北', answer)
     def test_weather_rejects_unverified(self):
         self.assertIsNone(format_taiping_weather({}))
