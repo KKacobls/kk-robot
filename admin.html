@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KK Robot｜管理員後台</title>
+<style>
+:root{color-scheme:dark;font:16px/1.55 system-ui,"Noto Sans TC",sans-serif;background:#111722;color:#edf2fa}
+*{box-sizing:border-box}body{max-width:1050px;margin:30px auto;padding:0 18px}h1{font-size:1.9rem;margin:0 0 6px}h2{font-size:1.2rem;margin:0 0 13px}h3{font-size:1.05rem}p{line-height:1.7}
+header{margin-bottom:22px}section.panel{background:#1c2533;border:1px solid #3a4a62;border-radius:15px;padding:21px;margin-bottom:18px}
+.muted,small{color:#aebfd3}label{display:block;margin:13px 0;font-weight:600}label.check{font-weight:400;display:flex;gap:10px;align-items:center;margin:9px 0}
+input:not([type=checkbox]):not([type=radio]),textarea,select{width:100%;margin:6px 0;padding:10px;background:#101827;border:1px solid #5c6c81;border-radius:8px;color:inherit;font:inherit}
+input[type=checkbox],input[type=radio]{accent-color:#75a4ff;width:17px;height:17px;flex-shrink:0}textarea{min-height:120px}
+button{background:#7daaff;color:#121c2d;border:0;border-radius:8px;font:inherit;font-weight:700;padding:10px 17px;cursor:pointer;margin:4px 8px 4px 0}
+button.secondary{background:#33445b;color:#f2f6ff}button:disabled{opacity:.5;cursor:not-allowed}
+.scroll{max-height:320px;overflow:auto;border:1px solid #46566c;border-radius:9px;padding:10px 14px}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.metric{background:#0e1928;padding:13px;border-radius:10px}.metric strong{display:block;font-size:1.25rem;overflow-wrap:anywhere}.notice{color:#a8c9ff}.warning{color:#ffc987}.good{color:#a2eab5}.error{color:#ffaaaa}#status{margin:14px 0;white-space:pre-wrap}#workspace{display:none}fieldset{border:1px solid #46566c;border-radius:10px;margin:14px 0;padding:12px 15px}legend{font-weight:700}hr{border:0;border-top:1px solid #38475b;margin:24px 0}code{color:#a7d2ff}
+@media(max-width:720px){.row,.metrics{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>KK Robot 管理後台</h1><p class="muted">管理 Discord 頻道、AI 模型、工具與本機 L40S 資源。</p></header>
+<section class="panel" id="login"><h2>管理員登入</h2><p>本頁僅限伺服器本機或 SSH 通道存取；不要公開管理連接埠。</p>
+<label>管理員密碼 <input id="pwd" type="password" autocomplete="current-password"></label>
+<button id="loginBtn">登入</button></section>
+<div id="workspace">
+<section class="panel"><div class="row"><div><label>Discord 伺服器 <select id="guild"></select></label></div><div><label>操作</label><button id="refreshBtn" class="secondary">重新同步頻道</button></div></div><p class="notice">頻道清單從 Discord 自動取得；<strong>沒有勾選任何頻道＝不會自動回覆</strong>。新加入的頻道預設不勾選。</p></section>
+<section class="panel"><h2>聊天模式</h2><fieldset>
+<label class="check"><input type="radio" name="mode" value="mention">只有 @ 或 /chat 才回覆</label>
+<label class="check"><input type="radio" name="mode" value="all">只在勾選頻道自動回覆（預設模式）</label>
+<label class="check"><input type="radio" name="mode" value="hybrid">混合：勾選頻道自動回覆，其他頻道需 @ 或 /chat</label>
+</fieldset><h3>自動回覆的文字頻道</h3><div class="scroll" id="channels"></div>
+<p class="muted" id="selection">尚未選擇任何頻道</p></section>
+<section class="panel"><h2>模型與對話</h2><label>Ollama 模型 <select id="model"><option value="qwen3.5:9b">Qwen3.5-9B（速度較快）</option><option value="qwen3.5:35b-a3b">Qwen3.5-35B-A3B</option></select></label>
+<p class="muted">使用 Ollama 本機位址 <code>127.0.0.1:11555</code>；think=false，num_ctx=8192。每次按需讀取本頻道最近 50 則歷史訊息。</p>
+<label>系統提示詞 <textarea id="prompt"></textarea></label></section>
+<section class="panel"><h2>工具權限</h2>
+<label class="check"><input id="webSearch" type="checkbox">允許 AI 使用網路搜尋（DuckDuckGo，不需 API Key）</label>
+<label class="check"><input id="pythonEnabled" type="checkbox">允許隔離執行 Python（預設關閉）</label>
+<label>可執行 Python 的 Discord 使用者 ID（逗號分隔）<input id="pythonUsers" placeholder="123456789012345678,987654321098765432"></label>
+<p class="warning">Python 必須先由管理員核准 Docker 使用方式、預先下載容器映像。伺服器管理員也可以執行；非授權成員不能執行。容器停用網路、不掛載主機目錄、限制 CPU／RAM／時間；仍不應視為可處理敵意程式碼的絕對安全邊界。</p>
+<button id="saveBtn">儲存所有設定</button></section>
+<section class="panel"><h2>伺服器即時資源</h2><div class="metrics">
+<div class="metric">CPU 使用率<strong id="cpu">—</strong></div><div class="metric">系統 RAM<strong id="ram">—</strong></div><div class="metric">GPU 使用率<strong id="gpu">—</strong></div>
+<div class="metric">GPU VRAM<strong id="vram">—</strong></div><div class="metric">GPU 型號<strong id="gpuname">—</strong></div><div class="metric">GPU 說明<small>數值屬共用主機整體使用量，不代表 KK Robot 獨占。</small></div></div>
+</section><section class="panel"><h2>AI 使用量（所選 Discord 伺服器）</h2><div class="metrics">
+<div class="metric">請求總數<strong id="requests">—</strong></div><div class="metric">輸入 Tokens<strong id="inputTokens">—</strong></div><div class="metric">輸出 Tokens<strong id="outputTokens">—</strong></div>
+<div class="metric">平均生成速度（約）<strong id="speed">—</strong></div><div class="metric">錯誤次數<strong id="errors">—</strong></div><div class="metric">Discord 連線<strong id="connected">—</strong></div>
+</div></section>
+</div>
+<p id="status" role="status"></p>
+<script>
+'use strict';
+let auth='',state=null;
+const $=id=>document.getElementById(id);
+const say=(s,ok=true)=>{$('status').textContent=s;$('status').className=ok?'good':'error'};
+async function api(path,opts={}){
+ const r=await fetch(path,{...opts,cache:'no-store',headers:{Authorization:'Basic '+auth,'Content-Type':'application/json',...(opts.headers||{})}});
+ if(!r.ok)throw Error('HTTP '+r.status+': '+(await r.text()).slice(0,240));
+ return r.json();
+}
+function current(){return state?.guilds?.find(g=>g.id===$('guild').value)}
+function updateSelection(){const n=$('channels').querySelectorAll('input:checked').length;$('selection').textContent=n?`已啟用 ${n} 個頻道`:'沒有勾選任何頻道：不自動回覆';}
+function render(){const g=current();if(!g){$('channels').textContent='目前沒有可存取的 Discord 伺服器';return;}
+ const s=g.settings;
+ document.querySelectorAll('input[name="mode"]').forEach(x=>x.checked=x.value===s.mode);
+ $('model').value=s.model;$('prompt').value=s.system_prompt;
+ $('webSearch').checked=!!s.web_search;$('pythonEnabled').checked=!!s.python_enabled;
+ $('pythonUsers').value=(s.python_allowed_user_ids||[]).join(',');
+ $('channels').replaceChildren();for(const ch of g.channels){const label=document.createElement('label');label.className='check';
+ const cb=document.createElement('input');cb.type='checkbox';cb.value=ch.id;cb.checked=s.channels.includes(ch.id);cb.disabled=!ch.can_reply;cb.addEventListener('change',updateSelection);
+ const txt=document.createElement('span');txt.textContent='# '+ch.name+(ch.can_reply?'':'（無法發送訊息）');label.append(cb,txt);$('channels').append(label);}
+ updateSelection();const u=g.usage||{};$('requests').textContent=u.requests??0;$('inputTokens').textContent=u.input_tokens??0;$('outputTokens').textContent=u.output_tokens??0;$('speed').textContent=(u.avg_tokens_per_sec??0)+' tokens/s';$('errors').textContent=u.errors??0;
+ $('connected').textContent=state.connected?'已連線':'未連線';
+}
+async function sync(){const selected=$('guild').value;state=await api('/api/state');$('guild').replaceChildren();for(const g of state.guilds){const opt=document.createElement('option');opt.value=g.id;opt.textContent=g.name;$('guild').append(opt)}
+ if(state.guilds.some(g=>g.id===selected))$('guild').value=selected;render();}
+async function getMetrics(){if(!auth)return;try{const d=await api('/api/metrics');$('cpu').textContent=d.cpu_percent===null?'—':d.cpu_percent+'%';$('ram').textContent=d.ram_total_mib?`${d.ram_used_mib} / ${d.ram_total_mib} MiB`:'—';
+ $('gpu').textContent=d.gpu?d.gpu.utilization_percent+'%':'不可用';$('vram').textContent=d.gpu?`${d.gpu.memory_used_mib} / ${d.gpu.memory_total_mib} MiB`:'—';$('gpuname').textContent=d.gpu?.name||'—';}catch(e){$('gpu').textContent='讀取失敗';}}
+$('loginBtn').onclick=async()=>{auth=btoa('admin:'+$('pwd').value);try{await sync();$('login').hidden=true;$('workspace').style.display='block';$('pwd').value='';await getMetrics();say('登入成功。只有按下儲存後，勾選的頻道才會生效。');}catch(e){auth='';say('登入失敗：'+e.message,false)}};
+$('pwd').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click()});
+$('guild').onchange=render;$('refreshBtn').onclick=async()=>{try{await sync();say('頻道清單已更新；新增的頻道預設不勾選。');}catch(e){say(e.message,false)}};
+$('saveBtn').onclick=async()=>{const g=current();if(!g){say('沒有選擇伺服器',false);return;}
+ const data={guild_id:g.id,mode:document.querySelector('input[name="mode"]:checked')?.value,
+ channels:[...$('channels').querySelectorAll('input:checked')].map(x=>x.value),model:$('model').value,system_prompt:$('prompt').value,
+ web_search:$('webSearch').checked,python_enabled:$('pythonEnabled').checked,
+ python_allowed_user_ids:$('pythonUsers').value.split(',').map(x=>x.trim()).filter(Boolean)};
+ try{const result=await api('/api/save',{method:'POST',body:JSON.stringify(data)});g.settings=result.settings;updateSelection();say('已儲存並立即生效。');}catch(e){say('儲存失敗：'+e.message,false)}
+};
+setInterval(()=>{if(auth)getMetrics()},7000);
+</script>
+</body></html>
