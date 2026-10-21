@@ -1,5 +1,6 @@
 import unittest
-from core import should_reply, safe_http_url, SearchResultParser, parse_gpu_csv, clean_text_for_discord
+from core import (should_reply, safe_http_url, SearchResultParser, parse_gpu_csv, clean_text_for_discord,
+                  needs_live_search, is_taiping_current_temp_question, format_taiping_weather)
 
 class CoreTest(unittest.TestCase):
     def test_empty_off(self):
@@ -28,4 +29,14 @@ class CoreTest(unittest.TestCase):
         self.assertIsNone(parse_gpu_csv('N/A'))
     def test_output(self):
         self.assertNotIn('@everyone', ''.join(clean_text_for_discord('@everyone hello')))
+    def test_live_search(self):
+        self.assertTrue(needs_live_search('台中市太平區幾度'))
+        self.assertTrue(needs_live_search('現在股票的股價'))
+        self.assertFalse(needs_live_search('Python 的 list 是什麼'))
+        self.assertTrue(is_taiping_current_temp_question('台中市太平區幾度'))
+        self.assertFalse(is_taiping_current_temp_question('台北市內湖區幾度'))
+    def test_weather_rejects_unverified(self):
+        self.assertIsNone(format_taiping_weather({}))
+        self.assertIsNone(format_taiping_weather({'current': {'temperature_2m': 20}, 'current_units': {}}))
+        self.assertIsNone(format_taiping_weather({'current': {'temperature_2m': 20, 'time': '2020-01-01T12:00'}, 'current_units': {'temperature_2m': '°C'}}))
 if __name__ == '__main__': unittest.main()
