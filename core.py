@@ -44,12 +44,18 @@ class SearchResultParser(HTMLParser):
         self.in_link = False
         self.title = []
         self.target = None
+        self.in_snippet = False
+        self.snippet = []
         self.results = []
 
     def handle_starttag(self, tag, attrs):
         if tag != 'a':
             return
         attrs = dict(attrs)
+        if 'result__snippet' in attrs.get('class', '').split():
+            self.in_snippet = True
+            self.snippet = []
+            return
         if 'result__a' not in attrs.get('class', '').split():
             return
         url = attrs.get('href', '')
@@ -67,8 +73,16 @@ class SearchResultParser(HTMLParser):
     def handle_data(self, data):
         if self.in_link:
             self.title.append(data)
+        if self.in_snippet:
+            self.snippet.append(data)
 
     def handle_endtag(self, tag):
+        if tag == 'a' and self.in_snippet:
+            if self.results:
+                snippet = re.sub(r'\s+', ' ', ''.join(self.snippet)).strip()
+                self.results[-1]['snippet'] = snippet[:550]
+            self.in_snippet = False
+            self.snippet = []
         if tag == 'a' and self.in_link:
             name = re.sub(r'\s+', ' ', ''.join(self.title)).strip()
             if name and self.target and len(self.results) < 6:
@@ -97,6 +111,8 @@ LIVE_KEYWORDS = (
     '幾度', '氣溫', '溫度', '天氣', '氣象', '即時', '目前', '現在',
     '今天', '今日', '明天', '明日', '最新', '新聞', '現價', '股價', '匯率',
     '營業時間', '開門時間', '有開嗎', '目前價格', '即時比分', '賽程',
+    '昨天', '前天', '剛剛', '幾點', '票價', '多少錢', '降雨', '颱風', '地震',
+    '正在', '這週', '本週', '近期', '更新', '優惠', '漲跌', '現況',
 )
 
 
@@ -104,38 +120,3 @@ def needs_live_search(text):
     """Questions that require fresh data must not rely on model memory."""
     return any(keyword in (text or '') for keyword in LIVE_KEYWORDS)
 
-
-def is_taiping_current_temp_question(text):
-    """Match the specific Taiping District example, not another city called Taiping."""
-    text = (text or '').replace('臺', '台').replace(' ', '')
-    return ('台中' in text and '太平' in text and
-            any(word in text for word in ('幾度', '氣溫', '溫度', '現在天氣', '目前天氣')))
-
-
-def format_taiping_weather(data):
-    """Only report a fresh, explicit temperature reading from the weather API."""
-    from datetime import datetime, timezone, timedelta
-    current = data.get('current') if isinstance(data, dict) else None
-    units = data.get('current_units') if isinstance(data, dict) else None
-    if not isinstance(current, dict) or not isinstance(units, dict):
-        return None
-    temperature = current.get('temperature_2m')
-    timestamp = current.get('time')
-    if isinstance(temperature, bool) or not isinstance(temperature, (int, float)):
-        return None
-    if not isinstance(timestamp, str) or units.get('temperature_2m') != '°C':
-        return None
-    try:
-        sample_time = datetime.fromisoformat(timestamp)
-        if sample_time.tzinfo is None:
-            sample_time = sample_time.replace(tzinfo=timezone(timedelta(hours=8)))
-        now_taiwan = datetime.now(timezone(timedelta(hours=8)))
-        if abs((now_taiwan - sample_time).total_seconds()) > 7200:
-            return None
-    except ValueError:
-        return None
-    source = ('https://api.open-meteo.com/v1/forecast?latitude=24.1265&'
-              'longitude=120.7185&current=temperature_2m&timezone=Asia%2FTaipei')
-    return (f'台中市太平區附近目前約 **{temperature:g}°C**（{timestamp}，台灣時間）。'
-            '\n這是 Open-Meteo 對附近網格的即時估算，並非太平區各地的實測溫度。'
-            f'\n資料來源：{source}')
