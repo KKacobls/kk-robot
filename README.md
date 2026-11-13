@@ -33,7 +33,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
 已經有虛擬環境、想手動啟動：
 
 ```powershell
-.\.venv\Scripts\python.exe run.py
+.\.venv\Scripts\python.exe app.py
 ```
 
 > 重要：**請在要被操作的那台 Windows 電腦上執行 Python 後端。** 網頁顯示的是後端電腦的實體桌面，不是正在看網頁的瀏覽器所在電腦。請不要把程式放在沒有桌面的伺服器上執行，也不要用 Windows 服務（Session 0）執行。
@@ -118,7 +118,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
 
 ```text
 ImageFlow-Studio/
-├── run.py                   # 入口，預設只監聽 127.0.0.1:4317
+├── app.py                   # 直接啟動：python app.py
+├── run.py                   # 啟動邏輯，預設只監聽 127.0.0.1:4317
 ├── start.bat / start.ps1    # Windows 一鍵安裝、啟動
 ├── requirements.txt
 ├── examples/                # 範例 JSON（無個人截圖）
@@ -158,4 +159,4 @@ python -m pytest -q
 
 ## v1.2 版本驗證
 
-已在開發環境執行單元／API 測試 25 項，另外以 Chromium 模擬 API 驗證多條 IF 新增、調整順序、貼圖、動態箭頭與複製／貼上。**尚未在使用者的 Windows 多實體螢幕環境實測**；使用前請先在模擬模式與圖片測試區確認。
+已在開發環境執行單元／API 測試 26 項，另外以 Chromium 模擬 API 驗證多條 IF 新增、調整順序、貼圖、動態箭頭與複製／貼上。**尚未在使用者的 Windows 多實體螢幕環境實測**；使用前請先在模擬模式與圖片測試區確認。
