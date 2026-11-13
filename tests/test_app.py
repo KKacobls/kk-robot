@@ -51,3 +51,16 @@ def test_monitor_list_and_independent_test_api(monkeypatch):
     r=client.post('/api/test',json={'image':'some image','threshold':.9,'monitor':'2'},headers={'X-ImageFlow-Token':token})
     assert r.status_code==200 and r.json()['monitor']=='2'
     assert captured['monitor']=='2' and captured['threshold']==.9
+
+
+def test_initialize_seeds_multi_if_example_without_overwriting_existing_data(tmp_path,monkeypatch):
+    monkeypatch.setattr(app_module,'DATA',tmp_path)
+    app_module.initialize()
+    example=tmp_path/'zz_multi_if_demo.json'
+    starter=tmp_path/'starter.json'
+    assert example.exists() and starter.exists()
+    data=json.loads(example.read_text(encoding='utf-8'))
+    assert data['nodes'][1]['type']=='multi_if' and len(data['nodes'][1]['cases'])==3
+    starter.write_text('do not overwrite',encoding='utf-8')
+    app_module.initialize()
+    assert starter.read_text(encoding='utf-8')=='do not overwrite'

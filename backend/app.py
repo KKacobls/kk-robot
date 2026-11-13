@@ -62,8 +62,18 @@ def flow_path(flow_id: str) -> Path:
 
 
 def initialize() -> None:
+    """Seed editable samples without tracking user screenshots in git."""
+    DATA.mkdir(parents=True, exist_ok=True)
+    examples = ROOT / "examples"
     if not any(DATA.glob("*.json")):
-        (DATA / "starter.json").write_text(json.dumps(sample_flow(), ensure_ascii=False, indent=2), encoding="utf-8")
+        starter = examples / "starter.json"
+        if starter.exists():
+            (DATA / "starter.json").write_bytes(starter.read_bytes())
+        else:
+            (DATA / "starter.json").write_text(json.dumps(sample_flow(), ensure_ascii=False, indent=2), encoding="utf-8")
+    demo = examples / "zz_multi_if_demo.json"
+    if demo.exists() and not (DATA / demo.name).exists():
+        (DATA / demo.name).write_bytes(demo.read_bytes())
 
 
 initialize()
@@ -90,7 +100,7 @@ async def protect_local_api(request: Request, call_next):
 
 @app.get("/api/bootstrap")
 def bootstrap():
-    return {"token": TOKEN, "version": "1.1.0"}
+    return {"token": TOKEN, "version": "1.2.0"}
 
 
 @app.get("/api/workflows")

@@ -10,15 +10,53 @@ from typing import Any, Callable
 
 from .vision import capture_screen, decode_template, match_image, normalize_monitor
 
-NODE_TYPES = {"start", "condition", "click", "wait", "hotkey", "end"}
+NODE_TYPES = {"start", "condition", "multi_if", "click", "wait", "hotkey", "end"}
+MAX_IF_CASES = 10
+IF_ID_RE = re.compile(r"if_[a-zA-Z0-9_-]{1,64}")
 OUTPUTS = {
     "start": {"next"},
     "condition": {"found", "missing"},
+    "multi_if": {"else"},
     "click": {"found", "missing"},
     "wait": {"next"},
     "hotkey": {"next"},
     "end": set(),
 }
+
+
+def outlets(node: dict[str, Any]) -> set[str]:
+    """The multi-IF node owns dynamic, stable output ports, plus an ELSE port."""
+    if node.get("type") == "multi_if":
+        return {"else", *(item["id"] for item in node.get("cases", []) if isinstance(item, dict) and isinstance(item.get("id"), str))}
+    return OUTPUTS[node["type"]]
+
+
+def validate_multi_if(node: dict[str, Any]) -> None:
+    cases = node.get("cases")
+    if not isinstance(cases, list) or not (1 <= len(cases) <= MAX_IF_CASES):
+        raise ValueError(f"多條 IF 節點必須有 1 到 {MAX_IF_CASES} 組判斷")
+    ids = set()
+    for i, case in enumerate(cases, 1):
+        if not isinstance(case, dict):
+            raise ValueError(f"IF {i} 條件格式不正確")
+        cid = case.get("id")
+        if not isinstance(cid, str) or not IF_ID_RE.fullmatch(cid) or cid in ids:
+            raise ValueError(f"IF {i} 的條件 ID 不合法或重複")
+        ids.add(cid)
+        if case.get("expect", "found") not in {"found", "missing"}:
+            raise ValueError(f"IF {i} 的判斷方式只能是『存在／不存在』")
+        if not case.get("image"):
+            raise ValueError(f"IF {i} 還沒有圖片，請先貼上")
+        decode_template(case["image"])
+        normalize_monitor(case.get("monitor", "all"))
+        for field, low, high in (("threshold", .1, 1.0), ("timeout", 0.0, 120.0)):
+            if field in case:
+                try:
+                    value = float(case[field])
+                    if not low <= value <= high:
+                        raise ValueError()
+                except (ValueError, TypeError, OverflowError):
+                    raise ValueError(f"IF {i} 的 {field} 超出允許範圍") from None
 
 
 def verify_flow(flow: dict[str, Any]) -> None:
@@ -44,6 +82,8 @@ def verify_flow(flow: dict[str, Any]) -> None:
         if node["type"] in {"condition", "click"}:
             decode_template(node["image"])
             normalize_monitor(node.get("monitor", "all"))
+        if node["type"] == "multi_if":
+            validate_multi_if(node)
     if len(starts) != 1:
         raise ValueError("每個流程必須剛好有一個『開始』節點")
     seen_ports = set()
@@ -53,7 +93,7 @@ def verify_flow(flow: dict[str, Any]) -> None:
         source, target, port = edge.get("source"), edge.get("target"), edge.get("sourceHandle")
         if source not in by_id or target not in by_id:
             raise ValueError("連線指向不存在的節點")
-        if port not in OUTPUTS[by_id[source]["type"]]:
+        if port not in outlets(by_id[source]):
             raise ValueError("節點的輸出連接點不正確")
         if (source, port) in seen_ports:
             raise ValueError("同一個輸出只能接到一個節點")
@@ -95,7 +135,7 @@ class WorkflowEngine:
 
     def _reset(self) -> None:
         self._state = {
-            "status": "idle", "current": None, "lastEdge": None,
+            "status": "idle", "current": None, "currentCase": None, "lastEdge": None,
             "lastMatch": None, "history": [], "logs": [], "dryRun": True,
             "startedAt": None, "finishedAt": None, "error": None,
         }
@@ -175,6 +215,7 @@ class WorkflowEngine:
                 nid, typ = node["id"], node["type"]
                 with self._lock:
                     self._state["current"] = nid
+                    self._state["currentCase"] = None
                     self._state["history"].append(nid)
                     self._state["history"] = self._state["history"][-80:]
                 self._log(f'執行「{node.get("title", typ)}」', nid)
@@ -189,6 +230,23 @@ class WorkflowEngine:
                     self._log(f'辨識 {"成功" if result["found"] else "失敗"}（信心值 {result["score"]:.3f}）', nid)
                     if result["found"] and node.get("clickOnFound", False):
                         self._click_match(node, result, dry_run)
+                elif typ == "multi_if":
+                    output = "else"
+                    for index, case in enumerate(node["cases"], 1):
+                        if self._stop.is_set():
+                            break
+                        self._patch(currentCase=case["id"])
+                        self._log(f'檢查 IF {index}：{case.get("title", "圖片條件")}（預期{"存在" if case.get("expect", "found") == "found" else "不存在"}）', nid)
+                        result = self._find(case, case.get("timeout", 0))
+                        matched = result["found"] == (case.get("expect", "found") == "found")
+                        self._log(f'IF {index}：{"符合" if matched else "不符合"}（相似度 {result["score"]:.3f}）', nid)
+                        if matched:
+                            output = case["id"]
+                            if result["found"] and case.get("clickOnFound", False):
+                                self._click_match({**case, "id": nid}, result, dry_run)
+                            break
+                    if output == "else" and not self._stop.is_set():
+                        self._log('所有 IF 條件都不符合，走 ELSE 分支', nid)
                 elif typ == "click":
                     result = self._find(node, node.get("timeout", 3))
                     output = "found" if result["found"] else "missing"
@@ -215,7 +273,7 @@ class WorkflowEngine:
                     self._log(f"「{node.get('title', typ)}」的 {output} 沒有接線，流程自然結束", nid)
                     self._patch(status="finished")
                     break
-                self._patch(lastEdge={"source": nid, "sourceHandle": output, "target": edge["target"]})
+                self._patch(currentCase=None, lastEdge={"source": nid, "sourceHandle": output, "target": edge["target"]})
                 current = edge["target"]
             if self._stop.is_set():
                 self._patch(status="stopped", current=None)

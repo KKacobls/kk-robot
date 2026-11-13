@@ -1,0 +1,120 @@
+{
+  "id": "zz_multi_if_demo",
+  "name": "範例：多條 IF（A / B / C / ELSE）",
+  "maxSteps": 500,
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "title": "開始",
+      "x": 40,
+      "y": 300
+    },
+    {
+      "id": "decision",
+      "type": "multi_if",
+      "title": "依序檢查 A → B → C",
+      "x": 325,
+      "y": 245,
+      "cases": [
+        {
+          "id": "if_a",
+          "title": "圖片 A 是否存在",
+          "image": "",
+          "expect": "found",
+          "threshold": 0.85,
+          "timeout": 0,
+          "monitor": "all",
+          "clickOnFound": false,
+          "clickX": 0.5,
+          "clickY": 0.5,
+          "button": "left",
+          "doubleClick": false
+        },
+        {
+          "id": "if_b",
+          "title": "圖片 B 是否存在",
+          "image": "",
+          "expect": "found",
+          "threshold": 0.85,
+          "timeout": 0,
+          "monitor": "all",
+          "clickOnFound": false,
+          "clickX": 0.5,
+          "clickY": 0.5,
+          "button": "left",
+          "doubleClick": false
+        },
+        {
+          "id": "if_c",
+          "title": "圖片 C 是否存在",
+          "image": "",
+          "expect": "found",
+          "threshold": 0.85,
+          "timeout": 0,
+          "monitor": "all",
+          "clickOnFound": false,
+          "clickX": 0.5,
+          "clickY": 0.5,
+          "button": "left",
+          "doubleClick": false
+        }
+      ]
+    },
+    {
+      "id": "result_a",
+      "type": "end",
+      "title": "找到 A",
+      "x": 810,
+      "y": 130
+    },
+    {
+      "id": "result_b",
+      "type": "end",
+      "title": "找到 B",
+      "x": 810,
+      "y": 270
+    },
+    {
+      "id": "result_c",
+      "type": "end",
+      "title": "找到 C",
+      "x": 810,
+      "y": 410
+    },
+    {
+      "id": "result_else",
+      "type": "end",
+      "title": "都沒找到",
+      "x": 810,
+      "y": 560
+    }
+  ],
+  "edges": [
+    {
+      "source": "start",
+      "sourceHandle": "next",
+      "target": "decision"
+    },
+    {
+      "source": "decision",
+      "sourceHandle": "if_a",
+      "target": "result_a"
+    },
+    {
+      "source": "decision",
+      "sourceHandle": "if_b",
+      "target": "result_b"
+    },
+    {
+      "source": "decision",
+      "sourceHandle": "if_c",
+      "target": "result_c"
+    },
+    {
+      "source": "decision",
+      "sourceHandle": "else",
+      "target": "result_else"
+    }
+  ]
+}
