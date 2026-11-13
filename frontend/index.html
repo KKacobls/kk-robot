@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>ImageFlow Studio · 圖片辨識工作流</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-icon">◈</div><div><strong>ImageFlow</strong><span>STUDIO</span></div></div>
+    <div class="flow-tools">
+      <select id="flowSelect" aria-label="選擇工作流"></select>
+      <button id="newFlow" title="建立新工作流">＋ 新增</button>
+      <button id="saveFlow" title="Ctrl+S 儲存工作流">▣ 儲存</button>
+      <span class="divider-v"></span>
+      <button id="importFlow" title="匯入 JSON">↥ 匯入</button>
+      <button id="exportFlow" title="匯出含圖片的 JSON">↧ 匯出</button>
+    </div>
+    <div class="run-tools">
+      <label class="switch"><input type="checkbox" id="dryRun" checked><span class="switch-track"></span><span>模擬模式</span></label>
+      <button class="btn-preview" id="testCenterButton">◎ 圖片測試區</button>
+      <button class="btn-preview" id="liveButton">◉ 即時辨識</button>
+      <button class="btn-run" id="runButton">▶ 執行</button>
+      <button class="btn-stop" id="stopButton">■ 停止</button>
+      <span class="run-status" id="runStatus"><i></i><span>就緒</span></span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="palette">
+      <div class="panel-heading"><span>工具箱</span><small>拖拉或點擊新增</small></div>
+      <div class="palette-group"><span>流程控制</span></div>
+      <button class="palette-item" draggable="true" data-add="start"><i class="pal-icon" style="--tone:#61a5ff">▶</i><div><strong>開始</strong><small>流程起點</small></div><b>＋</b></button>
+      <button class="palette-item" draggable="true" data-add="condition"><i class="pal-icon" style="--tone:#4bd6a5">◇</i><div><strong>圖片判斷</strong><small>找到／沒找到</small></div><b>＋</b></button>
+      <button class="palette-item" draggable="true" data-add="click"><i class="pal-icon" style="--tone:#ffbf6d">⊙</i><div><strong>圖片點擊</strong><small>辨識位置後點擊</small></div><b>＋</b></button>
+      <button class="palette-item" draggable="true" data-add="wait"><i class="pal-icon" style="--tone:#bb95ff">◷</i><div><strong>等待</strong><small>延遲指定秒數</small></div><b>＋</b></button>
+      <button class="palette-item" draggable="true" data-add="hotkey"><i class="pal-icon" style="--tone:#8db4ff">⌘</i><div><strong>按鍵</strong><small>Enter / Ctrl+S 等</small></div><b>＋</b></button>
+      <button class="palette-item" draggable="true" data-add="end"><i class="pal-icon" style="--tone:#fb7f91">■</i><div><strong>結束</strong><small>流程終點</small></div><b>＋</b></button>
+      <div class="palette-tip">
+        <strong>使用方法</strong>
+        <p>① 點節點，右邊設定圖片</p>
+        <p>② Ctrl+V 直接貼截圖</p>
+        <p>③ 空白處拖曳框選，Ctrl+C 複製</p>
+        <p>④ 先用圖片測試區及模擬模式</p>
+      </div>
+      <div class="safe-hint">🔒 僅在本機執行<br>F8 可緊急停止</div>
+    </aside>
+
+    <main class="board" id="board" aria-label="工作流編輯畫布">
+      <div class="board-grid" id="boardGrid"></div>
+      <div class="marquee" id="marquee" hidden></div>
+      <div class="world" id="world">
+        <svg class="edge-layer" id="edgeLayer" width="1" height="1" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="node-layer" id="nodeLayer"></div>
+      </div>
+      <div class="board-overlay top-left"><span class="crumb">工作流 / </span><strong id="boardTitle">讀取中…</strong><span class="dirty" id="dirtyBadge" hidden>未儲存</span></div>
+      <div class="board-overlay top-right"><span id="linkHint">拖曳節點排版 · 滾輪縮放</span></div>
+      <div class="board-controls">
+        <button id="copyNodes" title="複製框選的節點與內部箭頭">⧉ 複製</button><button id="pasteNodes" title="貼上整組節點">▣ 貼上</button>
+        <button id="zoomOut" title="縮小">−</button><span id="zoomLevel">100%</span><button id="zoomIn" title="放大">＋</button>
+        <button id="fitView" title="置中所有節點">⤢</button>
+      </div>
+      <div class="board-footer">空白處拖曳框選　·　空白鍵＋拖曳平移　·　 Ctrl+C / Ctrl+V 複製整組節點　·　 Delete 刪除</div>
+    </main>
+
+    <aside class="inspector">
+      <div class="panel-heading"><span>節點設定</span><small id="inspectorHint">選取節點開始編輯</small></div>
+      <div id="inspectorBody" class="inspector-body">
+        <div class="empty-state"><div class="empty-logo">◎</div><strong>選取一個節點</strong><p>選好節點後，直接貼圖片，就能建立圖片辨識條件。</p></div>
+      </div>
+      <div class="log-panel">
+        <div class="log-heading"><span>執行紀錄</span><button id="clearLogs" title="清除畫面上的紀錄">清空</button></div>
+        <div class="logs" id="logs"><div class="log-placeholder">流程尚未執行</div></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="modal" id="testModal" hidden>
+  <div class="modal-card test-card">
+    <div class="modal-head"><div><strong>獨立圖片測試區</strong><small>貼上任意圖片，不用建立節點；只判斷目前螢幕是否存在，不會點擊</small></div><button id="testClose" class="subtle">✕ 關閉</button></div>
+    <div class="test-content">
+      <div id="testDrop" class="test-drop" tabindex="0" title="點擊選圖，也可以 Ctrl+V 貼上">
+        <span id="testPlaceholder">▧ 點此選圖，或在測試區開啟時 Ctrl+V 直接貼上圖片</span>
+        <img id="testThumb" alt="測試圖片" hidden />
+      </div>
+      <div class="test-options">
+        <label>搜尋螢幕 <select id="testMonitor"><option value="all">全部螢幕</option></select></label>
+        <label>相似度門檻 <input id="testThreshold" type="range" min="0.5" max="1" step="0.01" value="0.85"><strong id="testThresholdLabel">85%</strong></label>
+      </div>
+      <div class="test-actions">
+        <button id="testUpload" class="subtle">▧ 選取圖片</button>
+        <button id="testFromNode" class="subtle">從目前節點取圖</button>
+        <button id="testCapture" class="subtle">▣ 擷取螢幕框選</button>
+        <button id="testPreview" class="subtle">◉ 即時看框線</button>
+        <button id="testNow" class="primary">◎ 判斷螢幕是否存在</button>
+      </div>
+      <div id="testCenterResult" class="test-center-result" aria-live="polite">請先貼入圖片。辨識結果會顯示符合門檻與否、最高分、螢幕編號及實際座標。</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="liveModal" hidden>
+  <div class="modal-card live-card">
+    <div class="modal-head"><div><strong>即時辨識畫面</strong><small id="liveSub">綠色＝找到／橘色＝低於門檻／黃色十字＝預計點擊位置</small></div><div><button id="liveExpand" class="subtle">⤢ 展開</button><button id="liveClose" class="subtle">✕ 關閉</button></div></div>
+    <div class="live-image-wrap"><img id="liveImage" alt="即時偵測桌面影像與辨識框" /><span id="liveLoading">正在擷取桌面畫面…</span></div>
+    <div class="modal-foot"><span id="liveScore">尚未測試</span><span>每 0.6 秒更新｜僅本機可檢視</span></div>
+  </div>
+</div>
+
+<div class="modal" id="cropModal" hidden>
+  <div class="modal-card crop-card">
+    <div class="modal-head"><div><strong>從目前桌面截取圖片</strong><small>拖曳框選你要辨識的按鈕或圖案，範圍越精準越好</small></div><button id="cropClose" class="subtle">✕ 取消</button></div>
+    <div class="crop-stage" id="cropStage"><img id="cropImage" alt="目前桌面截圖" draggable="false"><div id="cropSelection"></div></div>
+    <div class="modal-foot"><span id="cropHint">拖曳選擇範圍</span><button id="cropConfirm" class="primary" disabled>使用選取圖片</button></div>
+  </div>
+</div>
+
+<input type="file" id="jsonInput" accept=".json,application/json" hidden>
+<input type="file" id="imageInput" accept="image/png,image/jpeg,image/webp" hidden>
+<input type="file" id="testInput" accept="image/png,image/jpeg,image/webp" hidden>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/app.js" defer></script>
+</body>
+</html>

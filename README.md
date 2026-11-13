@@ -1,92 +1,135 @@
-# KK Robot — Discord + Ollama + Admin Dashboard
+# ImageFlow Studio v1.1 · 圖片辨識自動化工作流
 
-**狀態：功能實作版本，已完成靜態檢查及單元測試；尚未在你的 Discord／Ollama／Docker 實機做整合測試，不能視為已部署。**
+> 用瀏覽器拖拉流程圖，貼上截圖即可控制 Windows 桌面上的圖片辨識與滑鼠點擊。**Python 後端、本機離線執行、前端不需要 Node.js**。
 
-這份程式可以放在你現有的 `~/kk-robot` 目錄，作為獨立 `kk_robot.py` 使用；**不覆蓋原版的 `llmcord.py`、`config.yaml`、`requirements.txt`。** 設計參考 [jakobdylanc/llmcord](https://github.com/jakobdylanc/llmcord) 的 Discord 對話方式與 MIT 授權，保留來源授權檔；主程式由我們重新實作，以加入本專案的安全與管理功能。
+## 功能
 
-## 已實作的功能
+- ✅ **視覺化流程圖**：開始、圖片判斷（找到/沒找到雙分支）、圖片點擊、等待、按鍵、結束；彩色箭頭、可拖拉節點、縮放與連線。
+- ✅ **框選多個節點複製**：畫布空白處拖曳框選一整組，Ctrl+C / Ctrl+V 複製或使用工具列「複製 / 貼上」；會連同節點內圖片、設定及組內箭頭一起複製。Shift / Ctrl 點選可加選。
+- ✅ **獨立圖片測試區**：不用建立工作流，開啟「圖片測試區」後直接 Ctrl+V 貼圖或讀入圖片，設定門檻、選擇螢幕，按「判斷螢幕是否存在」顯示辨識結果、分數、螢幕編號及絕對座標；可開啟即時框選預覽。
+- ✅ **直接 Ctrl+V 貼圖**：Windows `Win + Shift + S` 截圖後，點選圖片節點並貼上；也支援讀取 PNG/JPG/WebP、擷取當前桌面後框選。
+- ✅ **指定圖片內點擊位置**：在圖片預覽上點一下，黃色十字會移到你要按的位置；使用相對座標，即使圖片在螢幕上移動，仍會點到同樣的圖片內位置。
+- ✅ **分支與循環**：例如 A 出現就點 A，沒出現就等待後重試；找到 B 走成功路線，找不到 B 就改點 C。
+- ✅ **可展開的即時畫面**：約每 0.6 秒擷取一次螢幕並畫出最佳比對位置；綠框代表通過門檻、橘框代表未通過，黃色十字代表預計點擊處。
+- ✅ **多螢幕選擇**：每個圖片節點和圖片測試區都能選全部螢幕或其中一個螢幕。全部螢幕模式逐個實體畫面辨識、顯示各螢幕分數，支援左方／上方螢幕的負座標，並用原生桌面座標點擊。
+- ✅ **執行狀態高亮**：正在執行的節點、最近走過的箭頭、時間戳紀錄都能在網頁看到。
+- ✅ **安全測試**：預設模擬模式，只比對、不點擊；取消模擬才會控制本機滑鼠鍵盤，且再次確認；**F8 停止**，滑鼠移至主螢幕座標 `(0,0)` 附近時可阻止下次點擊（主動停止建議使用 F8 或網頁「停止」）。
+- ✅ **存檔、匯入、匯出**：支援多個本機工作流。所有圖片以 PNG 等 data URL 內嵌在 JSON，匯出一個 `.json` 就包含節點、連線及圖片。
 
-- Discord 原生 **Reply**：不發送「🤔 思考中…」佔位訊息，僅顯示 Discord 的輸入中狀態；答案完成後才發送原生 Reply；忽略其他 Bot、Webhooks、DM。
-- 管理介面列出 Bot 在所選 Discord 伺服器**可查看的文字頻道**；無發言權限者停用勾選；新增頻道重新整理可見。
-- **預設全部頻道未勾選，沒有勾選就完全不會自動回覆**；管理員手動勾選並儲存，立即生效。三種模式：只在 @ 時回覆、指定頻道全訊息、混合模式。
-- 各伺服器設定以 SQLite 分離；按需讀取同一 Discord 頻道／討論串最近 50 則訊息，並依 18k 字元上限截斷，不會回覆舊訊息。
-- Ollama `127.0.0.1:11555`，`qwen3.5:9b`、`qwen3.5:35b-a3b` 可選，`think=false`、`num_ctx=8192`，單一模型並行、最多 16 件待處理。
-- 按管理員開關使用 **DuckDuckGo HTML 免費搜尋**，即時資訊問題會強制先搜尋，普通問題仍允許 AI 工具呼叫，並支援 `/search`，會回傳來源連結。搜尋 HTML 格式／速率限制可能改變，因此搜尋失敗會回報不可用，不假裝搜尋成功。
-- 按管理員開關使用 **Docker 隔離 Python**：AI 可用 `run_python` 工具，或用 `/python` 指令。預設關閉；只有已列白名單的使用者或 Discord 伺服器管理員能使用。
-- 台中市太平區即時氣溫可直接查詢免金鑰 Open-Meteo API（附近網格估算、附時間及來源）；無法取得可靠數據時不編造溫度。
-- 網頁監控 Linux CPU、RAM、NVIDIA GPU 使用率與 VRAM（讀取 `/proc`、`nvidia-smi`），統計每伺服器請求數、輸入／輸出 Token、整體產生速度與錯誤次數。
-- 管理頁使用密碼驗證、綁定 `127.0.0.1`，API 資料不緩存、阻擋異來源 POST，Token 僅存在 `.env` 且加入 `.gitignore`。
+## Windows 安裝（最簡單）
 
-## 重要限制
+1. 安裝 [Python 3.10+](https://www.python.org/downloads/windows/)；安裝時勾選 **Add python.exe to PATH**。
+2. 下載這個專案 ZIP，解壓縮。
+3. **雙擊 `start.bat`**。第一次啟動會自動建立 `.venv` 並安裝 Python 套件。
+4. 瀏覽器會自動開啟 **http://127.0.0.1:4317**。若沒有自動開啟，手動複製這個網址即可。
 
-1. 網路搜尋依賴第三方搜尋 HTML，只取得搜尋結果標題與連結，可能被限速，**不等於完整閱讀與驗證網頁內容**；回答仍可能不精確。太平區氣溫則由 Open-Meteo 取得網格估算，不是測站實測。
-2. Python **絕不可直接在校園共用主機執行使用者的任意程式碼**。本程式的 Python 只走 Docker 容器：`--network none`、唯讀根目錄、無主機掛載、丟棄 capabilities、限制 CPU／RAM／程序／輸出／時間。但 Docker daemon 的存取權限本身可能相當於主機管理員權限；**未取得系統管理員核准之前，請讓 Python 功能保持關閉。** 強敵意程式碼應使用更強的虛擬化隔離與審計。
-3. 管理後台的 Basic Auth 只適合透過 SSH 隧道存取；**不可以直接將 8765 埠公開到 Internet**。
-4. Bot 必須具有 `View Channel`、`Send Messages`、`Read Message History`（討論串需 `Send Messages in Threads`），以及 Discord Developer Portal 的 **Message Content Intent**。
-5. Bot 在 selected channels 會處理其他使用者的訊息；應先告知成員並遵守伺服器規範。
-6. 本機管理 API 與模型尚未整合實測，請先在測試伺服器確認所有權限和功能。
-
-## 安裝（Ubuntu／WSL2，延用已安裝的 uv）
-
-使用獨立的 `~/kk-robot-v1` 專案，不要覆蓋舊的 `~/kk-robot`。在新版目錄安裝：
-
-```bash
-cd ~/kk-robot-v1
-~/.local/bin/uv pip install --python .venv/bin/python -r requirements-kk.txt
-cp .env.example .env
-chmod 600 .env
-nano .env
-```
-
-在 `.env` 填入 Discord Bot Token 和至少 16 字元的隨機後台密碼，**不要傳給任何人**。
-
-在 Discord Developer Portal 啟用 Bot 的 Message Content Intent，邀請 Bot 使用 `bot` 與 `applications.commands` scopes；先選一個只有管理員知道的測試伺服器。
-
-測試啟動：
-
-```bash
-cd ~/kk-robot-v1
-.venv/bin/python kk_robot.py
-```
-
-Ollama 仍需在另一個程序常駐聆聽 `127.0.0.1:11555`。首次啟動**不會在任何頻道自動發言**，除非你在後台手動勾選頻道並儲存； `/chat` 及被 @ 的行為則依模式運作。
-
-Windows PowerShell 使用 SSH tunnel 存取後台（依自己的 SSH 主機與金鑰設定更改）：
+或使用 PowerShell（在專案資料夾內）：
 
 ```powershell
-ssh -p 26 -i "$env:USERPROFILE\.ssh\id_ed25519" -N -L 8765:127.0.0.1:8765 your-ssh-user@your-server-host
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
 ```
 
-瀏覽器開 `http://127.0.0.1:8765`。不要暴露給公共網路。
+已經有虛擬環境、想手動啟動：
 
-### Python 工具預先準備（需管理員核准）
+```powershell
+.\.venv\Scripts\python.exe run.py
+```
+
+> 重要：**請在要被操作的那台 Windows 電腦上執行 Python 後端。** 網頁顯示的是後端電腦的實體桌面，不是正在看網頁的瀏覽器所在電腦。請不要把程式放在沒有桌面的伺服器上執行，也不要用 Windows 服務（Session 0）執行。
+
+## 設計一個工作流
+
+預設範例已經排好以下流程，先分別選取 A、B、C 三個圖片節點貼圖，就能測試：
+
+```text
+開始
+  │
+  ▼
+圖片 A 存在嗎？───沒找到──→ 等 1 秒 ──→ 返回檢測 A
+  │ 找到
+  │ (可選：直接點 A 裡指定位置)
+  ▼
+圖片 B 存在嗎？────找到────→ 結束：成功
+  │ 沒找到
+  ▼
+找到圖片 C 並點擊？──找到───→ 結束：成功
+  │ 沒找到
+  ▼
+結束：C 也沒找到
+```
+
+**圖片怎麼貼？** 先開啟要自動操作的程式或網頁；按 `Win + Shift + S` 截出一個獨特的按鈕或圖案；切回 ImageFlow 網頁，點對應的圖片節點，按 `Ctrl + V` 即可。也可以按「擷取桌面」直接框選。點選右邊的範本預覽即可調整黃色十字的點擊位置。
+
+**怎麼測試而不新增流程？** 點上方「圖片測試區」→ 在彈出視窗直接 `Ctrl+V` 貼圖，或選檔／從目前節點取圖 → 選擇「全部螢幕」或特定螢幕及相似度門檻 → 按「判斷螢幕是否存在」。按「即時看框線」可檢查辨識區域。此區域從不點擊滑鼠。
+
+**怎麼框選複製流程？** 在畫布空白處按住左鍵拖曳，框住想要的節點；也可 Shift+點選加選。按 `Ctrl+C`、`Ctrl+V` 將整組節點貼到同一張工作流內，節點圖片及兩端都在框選範圍內的箭頭會一起複製。按空白鍵再拖曳可平移畫布；滑鼠中鍵拖曳也能平移。
+
+**怎麼連線？** 先點來源節點右側的圓點（「找到」、「沒找到」或「繼續」），再點目標節點左側圓點。每個輸出只能連一條線；再連一次會取代原連線。右側設定區可移除連線。可以連回以前的節點建立循環，執行器有最多 500 步的預設上限。
+
+**怎麼執行？** 預設勾選「模擬模式」，按 ▶ 執行。通過辨識測試後，再取消「模擬模式」，確定操作才會真正點擊。F8 停止，或將滑鼠移到主螢幕左上角觸發 PyAutoGUI FAILSAFE。每個節點都可以用「立即測試辨識」先檢查相似度。**模擬模式不會真的讓 UI 前進，因此需要點擊後才會出現的 B 圖，在模擬時可能會走「找不到」分支；這是預期行為。**
+
+## 快速鍵
+
+| 按鍵 | 效果 |
+| --- | --- |
+| `Win + Shift + S` | Windows 截圖到剪貼簿 |
+| `Ctrl + V` | 如果剪貼簿是圖片：貼到圖片測試區（開啟時）或選定圖片節點；若剪貼簿是已複製的節點：貼上整組節點 |
+| `Ctrl + C` | 複製目前框選的多個節點（含圖片及組內箭頭） |
+| `Shift` / `Ctrl` + 點選 | 加選或取消選取節點 |
+| 空白處按住左鍵拖曳 | 框選多個節點 |
+| `Space` + 拖曳 / 滑鼠中鍵拖曳 | 平移畫布 |
+| `Ctrl + D` | 原地複製目前選取的一組節點 |
+| `Delete` | 刪除選取的節點 |
+| `Ctrl + S` | 儲存目前工作流 |
+| `F8` | 停止正在執行的流程（監聽可用時） |
+| 滑鼠滾輪 | 流程畫布縮放 |
+| 拖曳畫布空白處 | 框選多個節點 |
+
+## 預設資料儲存位置
+
+`data/workflows/*.json`，內嵌截圖可直接備份；此目錄下的工作流 JSON 預設被 `.gitignore` 忽略，避免將個人桌面截圖推上 GitHub。從 GUI 按「匯出」取得單一 JSON 備份。
+
+## 架構
+
+```text
+ImageFlow-Studio/
+├── run.py                   # 入口，預設只監聽 127.0.0.1:4317
+├── start.bat / start.ps1    # Windows 一鍵安裝、啟動
+├── requirements.txt
+├── backend/
+│   ├── app.py               # FastAPI、工作流儲存、預覽與執行 API
+│   ├── engine.py            # 條件分支、停止、點擊、狀態、執行記錄
+│   └── vision.py            # MSS 桌面擷取、OpenCV 範本比對與預覽框
+├── frontend/
+│   ├── index.html           # Web GUI
+│   ├── style.css            # 深色主題
+│   └── app.js               # 零前端套件的流程圖編輯器
+└── tests/                   # 核心辨識、分支及 API 測試
+```
+
+後端使用 Python `mss` 截圖、`opencv-python` 模板比對、`pynput` 原生滑鼠多螢幕點擊及 `pyautogui` 送出快捷鍵、`FastAPI` 提供本地 API。全部不依賴雲端。服務只綁定 `127.0.0.1`，寫入與執行 API 要求隨機安全權杖。**不要額外使用反向代理或公開轉發此服務到網際網路。**
+
+## 限制與疑難排解
+
+- 範本比對是影像像素相似度，不是 OCR 或 AI 物件辨識；若 UI 縮放、DPI、主題、文字、畫面比例改變，可能需要重截圖。
+- 多螢幕可選擇全部或指定單一螢幕。全部螢幕模式抓取虛擬桌面後，按實體螢幕分別辨識，不會把螢幕間空白／接縫錯當成圖片。匹配座標為實體像素並可能為負數。Windows 啟動時開啟 Per-Monitor DPI awareness 以減少縮放造成的偏移。
+- 螢幕編號以本機 MSS 列出的順序為準，螢幕重新連接後可能變更；若流程依賴指定螢幕，請在啟動前確認編號。不同 Windows 權限層級／遊戲的反作弊措施可能阻擋滑鼠點擊或畫面擷取。
+- 很單調的圖片（例如純白方塊）容易誤判；建議截出**有字、有圖案、有足夠獨特特徵**的區域。灰階 OpenCV 模板比對不分辨顏色差異。
+- 視窗最小化、電腦鎖定、RDP 中斷、UAC 權限提升等可能讓畫面不可見或無法操作；請在正常登入的互動桌面使用。管理員視窗可能需要以相同完整性權限執行。
+- 模擬模式可先檢查節點邏輯及比對，但不會替你改變被操作的 UI。
+- 效能與截圖尺寸、範本大小、流程節點數量有關。預覽預設約 1.7 FPS。
+- 目前沒有 OCR、指定子視窗、搜尋區域、AI 判斷、複數模板 OR 等高階功能，這些可以後續擴充。
+
+## 針對開發者的測試
 
 ```bash
-# 預先拉取映像檔，避免首次執行時臨時下載
-# 執行前請先徵詢共用校園伺服器管理員意見
-# docker pull python:3.12-slim
+python -m pip install -r requirements.txt
+python -m pip install pytest httpx
+python -m pytest -q
 ```
 
-管理介面勾選 Python 執行、加入有權限者的 Discord 使用者 ID 才能使用。未勾選時不會為 AI 提供 Python 工具。
+此專案採用 MIT License。
 
-## 結構
+## v1.1 版本驗證
 
-- `kk_robot.py`：Discord Bot、Ollama、搜尋、Docker sandbox、管理 API。
-- `core.py`：純函式與搜尋 HTML 解析器。
-- `admin.html`：管理後台，含頻道勾選與硬體監控。
-- `requirements-kk.txt`：新增服務所需的依賴。
-- `.env.example`：環境變數樣板；實際 `.env` 必須保密。
-- `tests/test_core.py`：離線單元測試。
-
-測試：
-
-```bash
-cd ~/kk-robot-v1
-PYTHONPATH=. .venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python -m py_compile kk_robot.py core.py
-```
-
-## 授權與來源
-
-- 原始 Discord/Ollama 參考實作：[llmcord](https://github.com/jakobdylanc/llmcord)，MIT License；參見 `LICENSE-UPSTREAM-llmcord.md`。
-- 沒有修改你的 GitHub 上其他既有專案；此專案已上傳到公開 GitHub 儲存庫，可直接在伺服器以 HTTPS 拉取；請勿上傳實際 `.env`、密碼、Bot Token。
+已在開發環境執行單元／API 測試 17 項，另外以 Chromium 模擬桌面 API 驗證框選、多節點複製／貼上、測試區介面。**尚未在使用者的 Windows 多實體螢幕環境實測**；使用前請先在模擬模式與圖片測試區確認。

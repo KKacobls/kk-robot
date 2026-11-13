@@ -1,0 +1,117 @@
+{
+  "id": "starter",
+  "name": "範例：找到 A → 點擊 → 判斷 B",
+  "maxSteps": 500,
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "title": "開始",
+      "x": 30,
+      "y": 275
+    },
+    {
+      "id": "image_a",
+      "type": "condition",
+      "title": "圖片 A 存在嗎？",
+      "x": 300,
+      "y": 175,
+      "image": "",
+      "threshold": 0.85,
+      "timeout": 0,
+      "clickOnFound": true,
+      "clickX": 0.5,
+      "clickY": 0.5,
+      "button": "left"
+    },
+    {
+      "id": "image_b",
+      "type": "condition",
+      "title": "圖片 B 存在嗎？",
+      "x": 565,
+      "y": 80,
+      "image": "",
+      "threshold": 0.85,
+      "timeout": 1.5,
+      "clickOnFound": false,
+      "clickX": 0.5,
+      "clickY": 0.5
+    },
+    {
+      "id": "click_c",
+      "type": "click",
+      "title": "沒找到 B → 點擊 C",
+      "x": 565,
+      "y": 380,
+      "image": "",
+      "threshold": 0.85,
+      "timeout": 2,
+      "clickX": 0.5,
+      "clickY": 0.5
+    },
+    {
+      "id": "wait",
+      "type": "wait",
+      "title": "等候後再試 A",
+      "x": 300,
+      "y": 510,
+      "seconds": 1
+    },
+    {
+      "id": "success",
+      "type": "end",
+      "title": "結束：成功",
+      "x": 835,
+      "y": 70
+    },
+    {
+      "id": "miss",
+      "type": "end",
+      "title": "結束：C 也沒找到",
+      "x": 835,
+      "y": 530
+    }
+  ],
+  "edges": [
+    {
+      "source": "start",
+      "sourceHandle": "next",
+      "target": "image_a"
+    },
+    {
+      "source": "image_a",
+      "sourceHandle": "found",
+      "target": "image_b"
+    },
+    {
+      "source": "image_a",
+      "sourceHandle": "missing",
+      "target": "wait"
+    },
+    {
+      "source": "wait",
+      "sourceHandle": "next",
+      "target": "image_a"
+    },
+    {
+      "source": "image_b",
+      "sourceHandle": "found",
+      "target": "success"
+    },
+    {
+      "source": "image_b",
+      "sourceHandle": "missing",
+      "target": "click_c"
+    },
+    {
+      "source": "click_c",
+      "sourceHandle": "found",
+      "target": "success"
+    },
+    {
+      "source": "click_c",
+      "sourceHandle": "missing",
+      "target": "miss"
+    }
+  ]
+}
