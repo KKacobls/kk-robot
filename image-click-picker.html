@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Image Click Picker | 圖片點擊座標選取器</title>
+  <style>
+    :root {
+      --bg: #080e19; --surface: #0f1928; --surface2: #142134;
+      --border: #26374d; --border-soft: #1d2c40;
+      --text: #eef5ff; --subtle: #93a6c0; --muted: #657a95;
+      --accent: #64dfb3; --accent-dark: #1a574e; --blue: #75aaff;
+      --danger: #ff7b8d; --shadow: 0 16px 54px rgba(0,0,0,.2);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; min-width: 320px; background: radial-gradient(ellipse 900px 400px at 50% -80px, #173047 0%, var(--bg) 75%); color: var(--text); font-family: Inter, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, .image-stage img:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+    .wrap { max-width: 1360px; margin: 0 auto; padding: 0 30px; }
+    .top { border-bottom: 1px solid #1b2b3d; }
+    .top-inner { height: 84px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .logo { display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0; border: 1px solid #3b8077; border-radius: 14px; color: var(--accent); background: linear-gradient(145deg,#193b3e,#0c2633); box-shadow: 0 0 35px rgba(100,223,179,.08); }
+    .logo svg { width: 26px; height: 26px; }
+    .brand h1 { margin: 0; font-size: 20px; font-weight: 760; line-height: 1.2; letter-spacing: .2px; }
+    .brand .sub { margin-top: 5px; color: var(--subtle); font-size: 12px; letter-spacing: .3px; }
+    .private { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid #285344; background: #10271f; color: #8debc8; font-size: 12px; border-radius: 100px; white-space: nowrap; }
+    .private:before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #68e5ad; box-shadow: 0 0 10px #68e5ad; }
+    .intro { padding-top: 45px; padding-bottom: 25px; }
+    .intro h2 { margin: 0 0 11px; font-size: clamp(26px, 3.6vw, 41px); letter-spacing: -.85px; font-weight: 780; }
+    .intro h2 span { color: var(--accent); }
+    .intro p { margin: 0; color: var(--subtle); font-size: 14px; line-height: 1.9; }
+    .steps { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 21px; }
+    .step { display: flex; gap: 10px; align-items: center; padding: 9px 12px; border: 1px solid #23364b; border-radius: 9px; color: #aec0d5; background: #111d2d; font-size: 12px; }
+    .step strong { font-size: 11px; width: 21px; height: 21px; border-radius: 6px; display: grid; place-items: center; background: #224c45; color: #8bf2c7; }
+    .drop { border: 1.5px dashed #3f6e70; border-radius: 15px; background: linear-gradient(180deg,#10242c,#0e1b2a); min-height: 169px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 26px; transition: background .18s, border-color .18s, transform .18s; position: relative; }
+    .drop.dragging { background: #163c40; border-color: #8ff1cd; transform: scale(1.005); }
+    .drop-symbol { width: 35px; height: 35px; margin: 0 auto 9px; border-radius: 10px; color: #9bf1d0; display: grid; place-items: center; background: #1f4b45; font-size: 22px; }
+    .drop-title { font-size: 18px; font-weight: 760; }
+    .drop-desc { font-size: 12px; color: #9ab1c5; margin-top: 9px; line-height: 1.75; }
+    .key { display: inline-block; border: 1px solid #466b6f; background: #223c44; padding: 2px 8px; color: #d8f4ef; border-radius: 5px; font-size: 12px; font-family: Consolas, monospace; white-space: nowrap; }
+    .add-button { margin-left: 9px; border-radius: 7px; border: 1px solid #55bf9d; background: #1f705a; color: #f4fff9; padding: 7px 12px; font-size: 12px; font-weight: 700; }
+    .add-button:hover { background: #288c70; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin: 29px 0 15px; }
+    .toolbar .title { font-weight: 740; font-size: 17px; }
+    .toolbar .count { font-weight: 500; background: #203145; border-radius: 7px; color: #aac2d7; font-size: 12px; padding: 5px 9px; margin-left: 8px; }
+    .toolbar .hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+    .clear { color: #c4d3e6; background: transparent; border: 1px solid #314359; border-radius: 8px; padding: 9px 13px; font-size: 12px; }
+    .clear:hover:not(:disabled) { border-color: #ae5e73; color: #ffbac4; }
+    .clear:disabled { opacity: .35; cursor: not-allowed; }
+    .cards { display: flex; flex-direction: column; gap: 20px; padding-bottom: 60px; }
+    .empty { border: 1px solid #203046; border-radius: 14px; padding: 75px 20px; text-align: center; color: var(--muted); background: #0e1725; }
+    .empty .icon { font-size: 35px; margin-bottom: 12px; }
+    .empty strong { color: #b6cadd; font-size: 15px; display: block; margin-bottom: 8px; }
+    .card { background: #101b2b; border: 1px solid var(--border); border-radius: 15px; overflow: hidden; box-shadow: var(--shadow); }
+    .card-head { padding: 15px 18px; display: flex; align-items: center; gap: 12px; justify-content: space-between; border-bottom: 1px solid var(--border-soft); }
+    .card-ident { min-width: 0; display: flex; align-items: center; gap: 11px; }
+    .num { background: #1b3b3a; border: 1px solid #306356; color: #8cecc4; border-radius: 7px; font: 700 11px Consolas, monospace; padding: 7px 8px; white-space: nowrap; }
+    .file-meta { min-width: 0; }
+    .filename { font-weight: 660; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 660px; }
+    .dims { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .remove { height: 32px; width: 32px; flex-shrink: 0; border: 1px solid #344254; color: #9aadc4; background: #1b2a3d; border-radius: 8px; font-size: 23px; display: grid; place-items: center; line-height: 1; padding: 0; }
+    .remove:hover { color: var(--danger); border-color: #975362; background: #382634; }
+    .card-body { display: grid; grid-template-columns: minmax(0, 1fr) 347px; }
+    .image-panel { min-width: 0; padding: 21px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
+    .image-space { min-height: 190px; background: #0a111d; border: 1px solid #20334a; border-radius: 10px; padding: 17px; display: flex; align-items: center; justify-content: center; overflow: auto; }
+    .image-stage { position: relative; display: inline-block; max-width: 100%; line-height: 0; flex: 0 0 auto; }
+    .image-stage img { display: block; max-width: 100%; max-height: 500px; width: auto; height: auto; cursor: crosshair; user-select: none; -webkit-user-drag: none; }
+    .marker { position: absolute; z-index: 2; pointer-events: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #f7fffc; background: rgba(50,220,168,.28); box-shadow: 0 0 0 5px rgba(69,221,166,.23), 0 0 20px rgba(69,221,166,.9), 0 2px 8px #000; transform: translate(-50%,-50%); }
+    .marker:before, .marker:after { content: ""; position: absolute; background: #fff; opacity: .9; }
+    .marker:before { width: 2px; height: 32px; top: -8px; left: 7px; }
+    .marker:after { height: 2px; width: 32px; left: -8px; top: 7px; }
+    .marker-label { position: absolute; z-index: 3; pointer-events: none; border: 1px solid #5be6b3; background: #0f322b; color: #c7ffe9; font: 700 12px Consolas, monospace; padding: 7px 9px; white-space: nowrap; border-radius: 6px; transform: translate(15px,-50%); box-shadow: 0 4px 14px rgba(0,0,0,.4); line-height: 1.25; }
+    .marker-label.on-left { transform: translate(calc(-100% - 15px),-50%); }
+    .image-help { color: #8b9fb9; font-size: 12px; display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; line-height: 1.6; }
+    .image-help b { color: #a4f1d2; font-weight: 620; }
+    .center-btn { border: 1px solid #3a5361; border-radius: 7px; padding: 6px 9px; background: #172e33; color: #c2e9de; font-size: 11px; }
+    .center-btn:hover { background: #234747; }
+    .aside { border-left: 1px solid var(--border-soft); padding: 22px 21px; background: #111e30; }
+    .aside-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 8px; }
+    .aside h3 { margin: 0; font-size: 15px; }
+    .state { border: 1px solid #42526a; background: #243349; color: #b9c8dd; font-size: 11px; border-radius: 100px; padding: 5px 9px; white-space: nowrap; }
+    .state.ready { background: #183c33; border-color: #336c55; color: #8cefbe; }
+    .xy { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 20px; }
+    .xy-cell { border: 1px solid #2c3c53; background: #0b1624; padding: 13px; border-radius: 8px; }
+    .xy-cell small { display: block; color: #8099b5; font: 500 11px Consolas, monospace; margin-bottom: 6px; }
+    .xy-cell span { font: 760 24px Consolas, monospace; color: #f0f8ff; }
+    .field { margin-bottom: 16px; }
+    .field label { display: flex; justify-content: space-between; gap: 8px; align-items: center; color: #bccbde; font-size: 12px; margin-bottom: 8px; }
+    .field label .note { color: #758aa2; font-size: 10px; }
+    .field-row { display: flex; align-items: stretch; gap: 7px; }
+    .field input, .field textarea { min-width: 0; width: 100%; border: 1px solid #32465f; border-radius: 8px; padding: 12px 10px; background: #0c1826; color: #dbe8f9; font-family: Consolas, "Cascadia Code", monospace; font-size: 12px; outline: none; resize: none; }
+    .field input:focus, .field textarea:focus { border-color: #5dc5b5; }
+    .field input::placeholder { color: #5e748c; }
+    .field input[readonly], .field textarea[readonly] { cursor: text; }
+    .copy { border: 1px solid #476b7a; border-radius: 8px; color: #a4e9d3; padding: 0 12px; background: #1e3d45; font-size: 12px; white-space: nowrap; }
+    .copy:hover:not(:disabled) { background: #2b5d5d; color: white; }
+    .copy:disabled { opacity: .35; cursor: not-allowed; }
+    .aside-tip { border-top: 1px solid #2a3b50; padding-top: 12px; color: #8ea7bb; font-size: 11px; line-height: 1.75; }
+    .aside-tip b { color: #a1ead1; }
+    .footer { text-align: center; margin: -32px 0 32px; color: var(--muted); font-size: 11px; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%,20px); background: #174237; border: 1px solid #57c59c; color: #e1fff2; padding: 11px 16px; border-radius: 9px; font-size: 13px; z-index: 999; box-shadow: 0 13px 30px #0007; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100vw - 30px); text-align: center; }
+    .toast.show { opacity: 1; transform: translate(-50%,0); }
+    @media (max-width: 970px) { .card-body { grid-template-columns: 1fr; } .aside { border-left: 0; border-top: 1px solid var(--border-soft); } .filename { max-width: 65vw; } .aside { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 16px; } .aside-head, .xy, .aside-tip { grid-column: 1 / -1; } }
+    @media (max-width: 600px) { .wrap { padding: 0 15px; } .top-inner { height: 73px; } .logo { height: 39px; width: 39px; } .brand h1 { font-size: 16px; } .brand .sub { font-size: 10px; } .private { padding: 7px 8px; font-size: 10px; } .intro { padding-top: 30px; } .intro h2 { font-size: 26px; } .intro p { font-size: 12px; } .drop { min-height: 148px; padding: 18px 10px; } .drop-title { font-size: 15px; } .drop-desc { font-size: 11px; } .add-button { display: block; margin: 10px auto 0; } .image-panel { padding: 12px; } .image-space { padding: 8px; min-height: 135px; } .aside { padding: 17px 13px; display: block; } .card-head { padding: 12px; } .filename { max-width: 58vw; } .step { font-size: 11px; padding: 8px; } .marker-label { font-size: 10px; padding: 5px; } .xy-cell span { font-size: 20px; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2.8"/><path d="M12 1v5M12 18v5M1 12h5M18 12h5"/></svg></div>
+        <div><h1>Image Click Picker</h1><div class="sub">圖片點擊座標選取器 · 單檔離線工具</div></div>
+      </div>
+      <div class="private">完全本機處理</div>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="intro">
+      <h2>貼上圖片，<span>點出你要按的位置。</span></h2>
+      <p>讓大範圍圖片辨識後，仍能精確點擊指定按鈕。支援多張圖片，點擊後即時算出原圖像素座標與相對比例。</p>
+      <div class="steps" aria-label="操作步驟">
+        <div class="step"><strong>01</strong> Ctrl + V 貼上截圖</div>
+        <div class="step"><strong>02</strong> 點選圖片目標位置</div>
+        <div class="step"><strong>03</strong> 從右側複製座標</div>
+      </div>
+    </section>
+    <section id="drop" class="drop" aria-label="貼上或拖入圖片">
+      <div>
+        <div class="drop-symbol" aria-hidden="true">＋</div>
+        <div class="drop-title">貼上下一張圖片</div>
+        <div class="drop-desc">按 <span class="key">Ctrl + V</span> 貼上圖片，或把圖片拖進此區域<br>支援 PNG、JPG、WEBP 等瀏覽器可讀取的圖片 · 最新圖片會排在最上方</div>
+        <button type="button" id="pickFiles" class="add-button">選擇圖片檔案</button>
+      </div>
+    </section>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden>
+    <div class="toolbar">
+      <div><div class="title">圖片列表 <span id="count" class="count">0 張</span></div><div class="hint">最新在上方 · 每張圖片可以設定自己的點擊位置</div></div>
+      <button type="button" id="clearAll" class="clear" disabled>清空全部圖片</button>
+    </div>
+    <div id="cards" class="cards" aria-live="polite"><div class="empty"><div class="icon">▧</div><strong>還沒有圖片</strong>先複製一張截圖，再按 Ctrl + V 試試看。</div></div>
+    <div class="footer">圖片與座標只存在目前瀏覽器分頁中；重新整理或關閉頁面就會清除，不會上傳至伺服器。</div>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      'use strict';
+      const cardsEl = document.getElementById('cards');
+      const countEl = document.getElementById('count');
+      const clearButton = document.getElementById('clearAll');
+      const fileInput = document.getElementById('fileInput');
+      const dropEl = document.getElementById('drop');
+      const toastEl = document.getElementById('toast');
+      const photos = [];
+      let sequence = 0;
+      let toastTimeout;
+
+      const escapeHtml = (value) => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const fixed = n => n.toFixed(5);
+      function notify(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 2500);
+      }
+      async function loadImage(file, displayName) {
+        if (!file || !file.type.startsWith('image/')) return null;
+        const id = String(++sequence);
+        const url = URL.createObjectURL(file);
+        try {
+          const dimensions = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve({w: img.naturalWidth, h: img.naturalHeight});
+            img.onerror = reject;
+            img.src = url;
+          });
+          if (!dimensions.w || !dimensions.h) throw new Error('Empty image');
+          return { id, url, name: displayName || file.name || '未命名圖片', w: dimensions.w, h: dimensions.h, point: null };
+        } catch (err) { URL.revokeObjectURL(url); return null; }
+      }
+      async function addFiles(files, source='file') {
+        const candidates = [...files].filter(f => f && f.type.startsWith('image/'));
+        if (!candidates.length) { notify('沒有找到可貼上的圖片'); return; }
+        const loaded = await Promise.all(candidates.map((file, idx) => loadImage(file, source === 'paste' ? `貼上的圖片 ${new Date().toLocaleTimeString('zh-TW', {hour12:false})}${candidates.length > 1 ? ' · '+(idx+1) : ''}` : file.name)));
+        const valid = loaded.filter(Boolean);
+        if (!valid.length) { notify('圖片讀取失敗，請試試 PNG 或 JPG'); return; }
+        photos.unshift(...valid.reverse());
+        renderAll();
+        notify(`已新增 ${valid.length} 張圖片，請點圖設定位置`);
+      }
+      const findPhoto = id => photos.find(p => p.id === id);
+      const coordinate = photo => {
+        if (!photo.point) return {xy:'', relative:'', python:'', x:'—', y:'—'};
+        const {x,y} = photo.point;
+        return {
+          x:String(x), y:String(y),
+          xy:`(${x}, ${y})`,
+          relative:`(${fixed(x / photo.w)}, ${fixed(y / photo.h)})`,
+          python:`pyautogui.click(match_x + ${x}, match_y + ${y})`
+        };
+      };
+      function cardTemplate(p) {
+        const c = coordinate(p), hasPoint = !!p.point;
+        return `
+          <article class="card" data-id="${p.id}">
+            <div class="card-head">
+              <div class="card-ident"><span class="num">#${p.id.padStart(2,'0')}</span><div class="file-meta"><div class="filename" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div><div class="dims">原圖 ${p.w} × ${p.h} px</div></div></div>
+              <button type="button" class="remove" data-action="remove" aria-label="刪除 ${escapeHtml(p.name)}" title="刪除這張圖片">×</button>
+            </div>
+            <div class="card-body">
+              <section class="image-panel">
+                <div class="image-space"><div class="image-stage"><img src="${p.url}" alt="${escapeHtml(p.name)}，點選欲點擊的位置" draggable="false" tabindex="0" data-action="point"><div class="marker-container">${markerHtml(p)}</div></div></div>
+                <div class="image-help"><span>⊕ <b>直接點圖片</b> 指定位置 · 可重複點擊調整</span><button type="button" class="center-btn" data-action="center">⌖ 設為圖片中心</button></div>
+              </section>
+              <aside class="aside">
+                <div class="aside-head"><h3>點擊座標</h3><span class="state ${hasPoint?'ready':''}">${hasPoint?'✓ 已選定':'尚未選定'}</span></div>
+                <div class="xy"><div class="xy-cell"><small>X · 水平偏移</small><span class="x-value">${c.x}</span></div><div class="xy-cell"><small>Y · 垂直偏移</small><span class="y-value">${c.y}</span></div></div>
+                <div class="field"><label>原圖像素座標 <span class="note">從左上角 (0,0) 起算</span></label><div class="field-row"><input aria-label="原圖像素座標" readonly class="field-xy" value="${c.xy}" placeholder="點圖片後顯示"><button type="button" class="copy" data-copy="xy" ${hasPoint?'':'disabled'}>複製</button></div></div>
+                <div class="field"><label>相對座標 <span class="note">不受縮圖影響 · 0 ~ 1</span></label><div class="field-row"><input aria-label="相對座標" readonly class="field-relative" value="${c.relative}" placeholder="點圖片後顯示"><button type="button" class="copy" data-copy="relative" ${hasPoint?'':'disabled'}>複製</button></div></div>
+                <div class="field"><label>Python 點擊範例 <span class="note">OpenCV 辨識後使用</span></label><div class="field-row"><textarea aria-label="Python 點擊範例" rows="2" readonly class="field-python" placeholder="點圖片後顯示">${c.python}</textarea><button type="button" class="copy" data-copy="python" ${hasPoint?'':'disabled'}>複製</button></div></div>
+                <div class="aside-tip"><b>座標換算：</b>假設辨識到圖片的左上角是 <code>(match_x, match_y)</code>，實際要點的位置就是 <code>(match_x + X, match_y + Y)</code>。多螢幕時也適用，前提是辨識與點擊使用相同的桌面座標系。</div>
+              </aside>
+            </div>
+          </article>`;
+      }
+      function markerHtml(p) {
+        if (!p.point) return '';
+        const {x,y}=p.point, rx=100*x/p.w, ry=100*y/p.h;
+        const pos = `left:${rx}%;top:${ry}%`;
+        return `<span class="marker" style="${pos}"></span><span class="marker-label ${rx>60?'on-left':''}" style="${pos}">(${x}, ${y})</span>`;
+      }
+      function renderAll() {
+        countEl.textContent = `${photos.length} 張`;
+        clearButton.disabled = photos.length === 0;
+        cardsEl.innerHTML = photos.length ? photos.map(cardTemplate).join('') : '<div class="empty"><div class="icon">▧</div><strong>還沒有圖片</strong>先複製一張截圖，再按 Ctrl + V 試試看。</div>';
+      }
+      function updateCard(photo) {
+        const card=cardsEl.querySelector(`.card[data-id="${photo.id}"]`);
+        if (!card) return;
+        const c=coordinate(photo);
+        card.querySelector('.marker-container').innerHTML=markerHtml(photo);
+        card.querySelector('.x-value').textContent=c.x;
+        card.querySelector('.y-value').textContent=c.y;
+        card.querySelector('.field-xy').value=c.xy;
+        card.querySelector('.field-relative').value=c.relative;
+        card.querySelector('.field-python').value=c.python;
+        const state=card.querySelector('.state');
+        state.classList.add('ready');state.textContent='✓ 已選定';
+        card.querySelectorAll('[data-copy]').forEach(b=>b.disabled=false);
+      }
+      async function copyText(value, field) {
+        try {
+          if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
+          else throw new Error('fallback');
+        } catch {
+          field.focus(); field.select();
+          if (!document.execCommand('copy')) { notify('無法自動複製，請選取文字後按 Ctrl+C'); return; }
+        }
+        notify('座標已複製到剪貼簿');
+      }
+      cardsEl.addEventListener('click', event => {
+        const card=event.target.closest('.card');if(!card) return;
+        const photo=findPhoto(card.dataset.id);if(!photo) return;
+        const remove=event.target.closest('[data-action="remove"]');
+        if (remove) { photos.splice(photos.indexOf(photo),1);URL.revokeObjectURL(photo.url);renderAll();notify('已刪除圖片');return; }
+        if(event.target.closest('[data-action="center"]')) {
+          photo.point={x:Math.floor(photo.w/2),y:Math.floor(photo.h/2)}; updateCard(photo);return;
+        }
+        const copy=event.target.closest('[data-copy]');
+        if (copy) {
+          const key=copy.dataset.copy;
+          const input=card.querySelector(key==='xy'?'.field-xy':key==='relative'?'.field-relative':'.field-python');
+          if(input && input.value) copyText(input.value,input);
+          return;
+        }
+        const img=event.target.closest('img[data-action="point"]');
+        if (img) {
+          const rect=img.getBoundingClientRect();
+          const xRatio=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
+          const yRatio=Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height));
+          photo.point={x:Math.min(photo.w-1,Math.floor(xRatio*photo.w)),y:Math.min(photo.h-1,Math.floor(yRatio*photo.h))};
+          updateCard(photo);
+        }
+      });
+      document.addEventListener('paste', event => {
+        const clipboard=event.clipboardData;
+        if (!clipboard) return;
+        const files=[...clipboard.items].filter(it=>it.kind==='file'&&it.type.startsWith('image/')).map(it=>it.getAsFile()).filter(Boolean);
+        if (files.length) { event.preventDefault();addFiles(files,'paste'); }
+      });
+      document.getElementById('pickFiles').addEventListener('click',()=>fileInput.click());
+      fileInput.addEventListener('change',()=>{if(fileInput.files.length)addFiles(fileInput.files);fileInput.value='';});
+      let dragDepth=0;
+      document.addEventListener('dragenter',e=>{if([...e.dataTransfer?.types||[]].includes('Files')){e.preventDefault();dragDepth++;dropEl.classList.add('dragging');}});
+      document.addEventListener('dragover',e=>{if([...e.dataTransfer?.types||[]].includes('Files'))e.preventDefault();});
+      document.addEventListener('dragleave',()=>{dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)dropEl.classList.remove('dragging');});
+      document.addEventListener('drop',e=>{e.preventDefault();dragDepth=0;dropEl.classList.remove('dragging');if(e.dataTransfer?.files?.length)addFiles(e.dataTransfer.files);});
+      clearButton.addEventListener('click',()=>{if(photos.length && confirm(`確定要刪除全部 ${photos.length} 張圖片嗎？`)){photos.forEach(p=>URL.revokeObjectURL(p.url));photos.length=0;renderAll();notify('圖片已全部清空');}});
+      window.addEventListener('pagehide',()=>photos.forEach(p=>URL.revokeObjectURL(p.url)));
+    })();
+  </script>
+</body>
+</html>
