@@ -66,9 +66,11 @@
     .remove:hover { color: var(--danger); border-color: #975362; background: #382634; }
     .card-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(350px, 395px); }
     .image-panel { min-width: 0; padding: 21px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
-    .image-space { min-height: 280px; background: radial-gradient(ellipse at center, #101f30, #09121e); border: 1px solid #20334a; border-radius: 10px; padding: 78px 74px; display: flex; align-items: center; justify-content: center; overflow: auto; }
-    .image-stage { position: relative; display: inline-block; max-width: 100%; line-height: 0; flex: 0 0 auto; }
-    .image-stage canvas { display: block; max-width: 100%; max-height: 470px; width: auto; height: auto; cursor: crosshair; user-select: none; touch-action: manipulation; }
+    /* The scroll viewport is independent of the image resolution/rotation. Rotating never auto-shrinks the picture. */
+    .image-space { width: 100%; min-width: 0; height: clamp(360px, 61vh, 630px); background: radial-gradient(ellipse at center, #101f30, #09121e); border: 1px solid #20334a; border-radius: 10px; overflow: auto; overscroll-behavior: contain; scrollbar-color: #345d65 #0a1622; }
+    .image-view { box-sizing: border-box; display: grid; place-items: center; width: max-content; min-width: 100%; min-height: 100%; padding: 92px 64px; }
+    .image-stage { position: relative; display: inline-block; line-height: 0; flex: 0 0 auto; }
+    .image-stage canvas { display: block; max-width: none; max-height: none; cursor: crosshair; user-select: none; touch-action: manipulation; }
     .marker-container { position: absolute; inset: 0; pointer-events: none; }
     /* Word-style selection frame, stem and draggable rotation knob */
     .selection-frame { position: absolute; border: 2px solid #77caff; outline: 1px solid rgba(4,25,41,.7); pointer-events: none; transform-origin: center center; z-index: 4; }
@@ -86,6 +88,16 @@
     .rotate-button:hover { background: #2c5660; }
     .rotate-angle { width: 68px; border: 1px solid #476b7a; color: #effff9; background: #0a1927; border-radius: 7px; padding: 7px 8px; font: 700 12px Consolas, monospace; }
     .rotate-hint { color: #88acba; font-size: 11px; line-height: 1.5; }
+    .zoom-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; background: #101e34; border: 1px solid #305064; border-radius: 10px; }
+    .zoom-title { color: #b6d1e5; font-size: 13px; font-weight: 650; white-space: nowrap; }
+    .zoom-controls { display: flex; align-items: center; flex: 1 1 290px; gap: 9px; min-width: 0; }
+    .zoom-button { flex: none; display: inline-grid; place-items: center; min-width: 36px; height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid #446a7c; background: #1a3448; color: #e8f8ff; font-weight: 780; font-size: 19px; }
+    .zoom-button:hover:not(:disabled) { background: #2b5366; }
+    .zoom-button:disabled { opacity: .35; cursor: not-allowed; }
+    .zoom-slider { flex: 1 1 130px; min-width: 60px; accent-color: #65e1b2; cursor: pointer; }
+    .zoom-value { min-width: 55px; color: #a5f5d4; font: 730 15px Consolas, monospace; text-align: right; }
+    .zoom-reset { font-size: 12px; font-weight: 600; padding: 0 12px; }
+    .zoom-note { width: 100%; font-size: 11px; color: #91b1c5; line-height: 1.55; }
     .marker { position: absolute; z-index: 2; pointer-events: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #f7fffc; background: rgba(50,220,168,.28); box-shadow: 0 0 0 5px rgba(69,221,166,.23), 0 0 20px rgba(69,221,166,.9), 0 2px 8px #000; transform: translate(-50%,-50%); }
     .marker:before, .marker:after { content: ""; position: absolute; background: #fff; opacity: .9; }
     .marker:before { width: 2px; height: 32px; top: -8px; left: 7px; }
@@ -132,7 +144,7 @@
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%,20px); background: #174237; border: 1px solid #57c59c; color: #e1fff2; padding: 11px 16px; border-radius: 9px; font-size: 13px; z-index: 999; box-shadow: 0 13px 30px #0007; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100vw - 30px); text-align: center; }
     .toast.show { opacity: 1; transform: translate(-50%,0); }
     @media (max-width: 970px) { .card-body { grid-template-columns: 1fr; } .aside { border-left: 0; border-top: 1px solid var(--border-soft); } .filename { max-width: 65vw; } }
-    @media (max-width: 600px) { .rotate-status { flex-basis: 100%; } .rotate-bar { padding: 10px; gap: 7px; } .wrap { padding: 0 15px; } .top-inner { height: 73px; } .logo { height: 39px; width: 39px; } .brand h1 { font-size: 16px; } .brand .sub { font-size: 10px; } .private { padding: 7px 8px; font-size: 10px; } .intro { padding-top: 30px; } .intro h2 { font-size: 26px; } .intro p { font-size: 12px; } .drop { min-height: 148px; padding: 18px 10px; } .drop-title { font-size: 15px; } .drop-desc { font-size: 11px; } .add-button { display: block; margin: 10px auto 0; } .image-panel { padding: 12px; } .image-space { padding: 68px 48px; min-height: 180px; } .aside { padding: 17px 13px; } .card-head { padding: 12px; } .filename { max-width: 58vw; } .step { font-size: 11px; padding: 8px; } .marker-label { font-size: 10px; padding: 5px; } .coordinate-box { min-height: 210px; } }
+    @media (max-width: 600px) { .rotate-status { flex-basis: 100%; } .rotate-bar { padding: 10px; gap: 7px; } .wrap { padding: 0 15px; } .top-inner { height: 73px; } .logo { height: 39px; width: 39px; } .brand h1 { font-size: 16px; } .brand .sub { font-size: 10px; } .private { padding: 7px 8px; font-size: 10px; } .intro { padding-top: 30px; } .intro h2 { font-size: 26px; } .intro p { font-size: 12px; } .drop { min-height: 148px; padding: 18px 10px; } .drop-title { font-size: 15px; } .drop-desc { font-size: 11px; } .add-button { display: block; margin: 10px auto 0; } .image-panel { padding: 12px; } .image-space { height: 410px; min-height: 280px; } .image-view { padding: 82px 38px; } .zoom-bar { padding: 10px; } .aside { padding: 17px 13px; } .card-head { padding: 12px; } .filename { max-width: 58vw; } .step { font-size: 11px; padding: 8px; } .marker-label { font-size: 10px; padding: 5px; } .coordinate-box { min-height: 210px; } }
   </style>
 </head>
 <body>
@@ -148,7 +160,7 @@
   <main class="wrap">
     <section class="intro">
       <h2>貼上圖片，<span>點出你要按的位置。</span></h2>
-      <p>讓大範圍圖片辨識後，仍能精確點擊指定按鈕。支援多張圖片，像 Word 一樣拖曳圖片上方的旋轉控制點，即時查看角度；點選位置後右側一個大文字框可直接複製。</p>
+      <p>讓大範圍圖片辨識後，仍能精確點擊指定按鈕。支援多張圖片，像 Word 一樣拖曳上方的旋轉控制點（不會自動縮小圖片）；下方還能放大檢查細節。點選位置後，右側一個大文字框可直接複製。</p>
       <div class="steps" aria-label="操作步驟">
         <div class="step"><strong>01</strong> Ctrl + V 貼上截圖</div>
         <div class="step"><strong>02</strong> 點選圖片目標位置</div>
@@ -205,7 +217,7 @@
             img.src = url;
           });
           if (!dimensions.w || !dimensions.h) throw new Error('Empty image');
-          return { id, url, image: dimensions.image, name: displayName || file.name || '未命名圖片', w: dimensions.w, h: dimensions.h, point: null, rotation: 0 };
+          return { id, url, image: dimensions.image, name: displayName || file.name || '未命名圖片', w: dimensions.w, h: dimensions.h, point: null, rotation: 0, zoom: 100, baseScale: null };
         } catch (err) { URL.revokeObjectURL(url); return null; }
       }
       async function addFiles(files, source='file') {
@@ -222,22 +234,31 @@
       // Rotate clockwise on the preview only. All exported click offsets remain relative
       // to the ORIGINAL template image, so OpenCV matches do not need rotating.
       const normalizeAngle = degrees => ((Math.round(degrees) % 360) + 360) % 360;
+      // A fixed, rotation-independent scale prevents the visual image size from changing
+      // as the user rotates it. The containing canvas is a constant diagonal-sized square
+      // so the rotate handle/center does not jump while dragging.
       function rotationGeometry(p) {
         const angle = p.rotation * Math.PI / 180;
         const cos = Math.cos(angle), sin = Math.sin(angle);
-        const width = Math.abs(p.w * cos) + Math.abs(p.h * sin);
-        const height = Math.abs(p.w * sin) + Math.abs(p.h * cos);
-        const scale = Math.min(1, 1200 / Math.max(width, height));
-        return {cos, sin, width, height, scale};
+        const diagonal = Math.hypot(p.w, p.h);
+        const scale = (p.baseScale || 1) * p.zoom / 100;
+        return {cos, sin, width: diagonal, height: diagonal, scale};
       }
       function drawPreview(p, card) {
         const canvas = card.querySelector('.image-stage canvas');
         if (!canvas || !p.image) return;
+        if (p.baseScale === null) {
+          const viewport = card.querySelector('.image-space');
+          const availableWidth = Math.max(140, viewport.clientWidth - (window.innerWidth < 600 ? 58 : 120));
+          p.baseScale = Math.min(1, availableWidth / p.w, 470 / p.h);
+        }
         const g = rotationGeometry(p);
         const width = Math.max(1, Math.ceil(g.width * g.scale));
-        const height = Math.max(1, Math.ceil(g.height * g.scale));
+        const height = width;
         if (canvas.width !== width) canvas.width = width;
         if (canvas.height !== height) canvas.height = height;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         ctx.clearRect(0, 0, width, height);
@@ -279,6 +300,7 @@
           `圖片：${p.name}`,
           `原圖尺寸：${p.w} × ${p.h} px`,
           `預覽旋轉角度（順時針）：${p.rotation}°`,
+          `預覽縮放倍率：${p.zoom}%`,
           ``,
         ];
         if (!p.point) {
@@ -306,13 +328,24 @@
             </div>
             <div class="card-body">
               <section class="image-panel">
-                <div class="image-space"><div class="image-stage"><canvas aria-label="${escapeHtml(p.name)}，點選欲點擊的位置" role="img" tabindex="0" data-action="point"></canvas><div class="marker-container">${markerHtml(p)}</div><div class="selection-frame"><span class="rotation-stem"></span><button type="button" class="rotation-handle" data-action="rotate-handle" aria-label="拖曳旋轉圖片" title="像 Word 一樣，拖曳此控制點旋轉圖片；按住 Shift 每 15° 吸附。雙擊重設。">↻</button><span class="rotation-bubble">${p.rotation}°</span></div></div></div>
+                <div class="image-space" aria-label="圖片預覽區，可以使用捲軸查看放大或旋轉後的部分"><div class="image-view"><div class="image-stage"><canvas aria-label="${escapeHtml(p.name)}，點選欲點擊的位置" role="img" tabindex="0" data-action="point"></canvas><div class="marker-container">${markerHtml(p)}</div><div class="selection-frame"><span class="rotation-stem"></span><button type="button" class="rotation-handle" data-action="rotate-handle" aria-label="拖曳旋轉圖片" title="像 Word 一樣，拖曳此控制點旋轉圖片；按住 Shift 每 15° 吸附。雙擊重設。">↻</button><span class="rotation-bubble">${p.rotation}°</span></div></div></div></div>
                 <div class="rotate-bar" aria-label="圖片旋轉設定">
                   <span class="rotate-status">旋轉角度：<output class="rotate-label">${p.rotation}°</output></span>
                   <button type="button" class="rotate-button" data-action="rotate-left" title="逆時針轉 90 度">↶ 左轉 90°</button>
                   <button type="button" class="rotate-button" data-action="rotate-right" title="順時針轉 90 度">↷ 右轉 90°</button>
                   <label class="rotate-hint" for="angle-${p.id}">自訂角度</label><input type="number" id="angle-${p.id}" class="rotate-angle" data-action="rotate-angle" min="-360" max="360" step="1" value="${p.rotation}" aria-label="旋轉角度（度）">
                   <button type="button" class="rotate-button" data-action="rotate-reset" title="恢復原始角度">重設 0°</button>
+                </div>
+                <div class="zoom-bar" aria-label="圖片放大與縮小設定">
+                  <span class="zoom-title">🔎 圖片縮放</span>
+                  <div class="zoom-controls">
+                    <button type="button" class="zoom-button" data-action="zoom-out" title="縮小 25%" aria-label="縮小 25%" ${p.zoom <= 25 ? 'disabled' : ''}>−</button>
+                    <input type="range" class="zoom-slider" data-action="zoom-range" min="25" max="400" step="5" value="${p.zoom}" aria-label="圖片縮放倍率（25 到 400%）">
+                    <button type="button" class="zoom-button" data-action="zoom-in" title="放大 25%" aria-label="放大 25%" ${p.zoom >= 400 ? 'disabled' : ''}>+</button>
+                    <output class="zoom-value">${p.zoom}%</output>
+                    <button type="button" class="zoom-button zoom-reset" data-action="zoom-reset" title="恢復預設圖片大小">100%</button>
+                  </div>
+                  <span class="zoom-note">旋轉不會自動縮小圖片；放大後可在上方預覽框捲動查看，點擊座標仍為原圖座標。</span>
                 </div>
                 <div class="image-help"><span>↻ <b>拖曳圖片上方的旋轉控制點</b>，像 Word 一樣調角度（Shift 吸附 15°）；<b>直接點圖片</b> 指定位置</span><button type="button" class="center-btn" data-action="center">⌖ 設為圖片中心</button></div>
                 <div class="rotate-hint">旋轉只影響圖片預覽。右側的 X / Y 始終是<strong>原圖座標</strong>，用於未旋轉圖片的模板比對。</div>
@@ -360,6 +393,30 @@
         card.querySelector('.rotate-angle').value = photo.rotation;
 
         drawPreview(photo, card);
+        card.querySelector('.coordinate-box').value = coordinateSummary(photo);
+      }
+      function setZoom(photo, percent, card) {
+        if (!Number.isFinite(percent)) return;
+        const viewport = card.querySelector('.image-space');
+        // Keep the user's current viewed region approximately centered when zooming.
+        const beforeCenterX = viewport.scrollLeft + viewport.clientWidth / 2;
+        const beforeCenterY = viewport.scrollTop + viewport.clientHeight / 2;
+        const beforeContent = card.querySelector('.image-view');
+        const beforeExtentW = beforeContent.scrollWidth;
+        const beforeExtentH = beforeContent.scrollHeight;
+        const normX = beforeExtentW ? beforeCenterX / beforeExtentW : 0.5;
+        const normY = beforeExtentH ? beforeCenterY / beforeExtentH : 0.5;
+        photo.zoom = Math.min(400, Math.max(25, Math.round(percent / 5) * 5));
+        const slider = card.querySelector('.zoom-slider');
+        slider.value = photo.zoom;
+        card.querySelector('.zoom-value').textContent = `${photo.zoom}%`;
+        card.querySelector('[data-action="zoom-out"]').disabled = photo.zoom <= 25;
+        card.querySelector('[data-action="zoom-in"]').disabled = photo.zoom >= 400;
+        drawPreview(photo, card);
+        // Rescale scroll coordinates without moving the chosen image content dramatically.
+        const afterContent = card.querySelector('.image-view');
+        viewport.scrollLeft = Math.max(0, normX * afterContent.scrollWidth - viewport.clientWidth / 2);
+        viewport.scrollTop = Math.max(0, normY * afterContent.scrollHeight - viewport.clientHeight / 2);
         card.querySelector('.coordinate-box').value = coordinateSummary(photo);
       }
       function updateCard(photo) {
@@ -454,6 +511,9 @@
         if(event.target.closest('[data-action="rotate-left"]')) { setRotation(photo, photo.rotation - 90, card); return; }
         if(event.target.closest('[data-action="rotate-right"]')) { setRotation(photo, photo.rotation + 90, card); return; }
         if(event.target.closest('[data-action="rotate-reset"]')) { setRotation(photo, 0, card); return; }
+        if(event.target.closest('[data-action="zoom-out"]')) { setZoom(photo, photo.zoom - 25, card); return; }
+        if(event.target.closest('[data-action="zoom-in"]')) { setZoom(photo, photo.zoom + 25, card); return; }
+        if(event.target.closest('[data-action="zoom-reset"]')) { setZoom(photo, 100, card); return; }
         const copy=event.target.closest('[data-copy]');
         if (copy) {
           const key=copy.dataset.copy;
@@ -478,6 +538,13 @@
           photo.point={x:Math.floor(originalX),y:Math.floor(originalY)};
           updateCard(photo);
         }
+      });
+      cardsEl.addEventListener('input', event => {
+        const slider = event.target.closest('[data-action="zoom-range"]');
+        if (!slider) return;
+        const card = slider.closest('.card');
+        const photo = card && findPhoto(card.dataset.id);
+        if (photo) setZoom(photo, Number(slider.value), card);
       });
       cardsEl.addEventListener('change', event => {
         const input=event.target.closest('[data-action="rotate-angle"]');
