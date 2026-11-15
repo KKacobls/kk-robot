@@ -64,19 +64,27 @@
     .dims { color: var(--muted); font-size: 12px; margin-top: 4px; }
     .remove { height: 32px; width: 32px; flex-shrink: 0; border: 1px solid #344254; color: #9aadc4; background: #1b2a3d; border-radius: 8px; font-size: 23px; display: grid; place-items: center; line-height: 1; padding: 0; }
     .remove:hover { color: var(--danger); border-color: #975362; background: #382634; }
-    .card-body { display: grid; grid-template-columns: minmax(0, 1fr) 347px; }
+    .card-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(350px, 395px); }
     .image-panel { min-width: 0; padding: 21px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
-    .image-space { min-height: 190px; background: #0a111d; border: 1px solid #20334a; border-radius: 10px; padding: 17px; display: flex; align-items: center; justify-content: center; overflow: auto; }
+    .image-space { min-height: 280px; background: radial-gradient(ellipse at center, #101f30, #09121e); border: 1px solid #20334a; border-radius: 10px; padding: 78px 74px; display: flex; align-items: center; justify-content: center; overflow: auto; }
     .image-stage { position: relative; display: inline-block; max-width: 100%; line-height: 0; flex: 0 0 auto; }
-    .image-stage canvas { display: block; max-width: 100%; max-height: 500px; width: auto; height: auto; cursor: crosshair; user-select: none; touch-action: manipulation; }
+    .image-stage canvas { display: block; max-width: 100%; max-height: 470px; width: auto; height: auto; cursor: crosshair; user-select: none; touch-action: manipulation; }
     .marker-container { position: absolute; inset: 0; pointer-events: none; }
+    /* Word-style selection frame, stem and draggable rotation knob */
+    .selection-frame { position: absolute; border: 2px solid #77caff; outline: 1px solid rgba(4,25,41,.7); pointer-events: none; transform-origin: center center; z-index: 4; }
+    .selection-frame::before { content: ""; position: absolute; inset: -4px; border: 1px dashed rgba(200,242,255,.45); pointer-events: none; }
+    .rotation-stem { position: absolute; left: 50%; top: -44px; height: 42px; width: 2px; background: #9be4ff; transform: translateX(-50%); pointer-events: none; }
+    .rotation-handle { position: absolute; left: 50%; top: -76px; width: 35px; height: 35px; padding: 0; border: 2px solid #9ed9ff; border-radius: 50%; background: #173e5b; color: white; display: grid; place-items: center; font-size: 22px; line-height: 1; box-shadow: 0 3px 15px rgba(0,0,0,.7), 0 0 0 4px rgba(104,192,250,.17); cursor: grab; pointer-events: auto; touch-action: none; user-select: none; transform: translateX(-50%) rotate(var(--counter-rotation)); }
+    .rotation-handle:hover, .rotation-handle:focus-visible, .card.is-rotating .rotation-handle { background: #267dab; border-color: #e0fbff; box-shadow: 0 3px 20px rgba(0,0,0,.7), 0 0 0 7px rgba(108,204,255,.23); }
+    .card.is-rotating .rotation-handle { cursor: grabbing; }
+    .rotation-bubble { position: absolute; top: -75px; left: calc(50% + 24px); font: 700 12px Consolas, monospace; border: 1px solid #4a9cb1; color: #b8fcff; background: #102b3d; padding: 7px 9px; border-radius: 7px; white-space: nowrap; pointer-events: none; transform: rotate(var(--counter-rotation)); box-shadow: 0 2px 9px #0009; }
+
     .rotate-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; padding: 11px 12px; border-radius: 9px; border: 1px solid #2c4654; background: #10252e; }
     .rotate-status { color: #aec8d5; font-size: 12px; white-space: nowrap; margin-right: auto; }
     .rotate-status output { display: inline-block; min-width: 48px; color: #9ef4cf; font: 750 15px Consolas, monospace; text-align: center; }
     .rotate-button { border: 1px solid #476b7a; background: #1b3944; color: #d3ebe7; padding: 7px 10px; border-radius: 7px; font-size: 12px; white-space: nowrap; }
     .rotate-button:hover { background: #2c5660; }
     .rotate-angle { width: 68px; border: 1px solid #476b7a; color: #effff9; background: #0a1927; border-radius: 7px; padding: 7px 8px; font: 700 12px Consolas, monospace; }
-    .rotate-slider { width: 110px; max-width: 180px; flex: 1 1 90px; accent-color: #64dfb3; cursor: pointer; }
     .rotate-hint { color: #88acba; font-size: 11px; line-height: 1.5; }
     .marker { position: absolute; z-index: 2; pointer-events: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #f7fffc; background: rgba(50,220,168,.28); box-shadow: 0 0 0 5px rgba(69,221,166,.23), 0 0 20px rgba(69,221,166,.9), 0 2px 8px #000; transform: translate(-50%,-50%); }
     .marker:before, .marker:after { content: ""; position: absolute; background: #fff; opacity: .9; }
@@ -88,8 +96,8 @@
     .image-help b { color: #a4f1d2; font-weight: 620; }
     .center-btn { border: 1px solid #3a5361; border-radius: 7px; padding: 6px 9px; background: #172e33; color: #c2e9de; font-size: 11px; }
     .center-btn:hover { background: #234747; }
-    .aside { border-left: 1px solid var(--border-soft); padding: 22px 21px; background: #111e30; }
-    .aside-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 8px; }
+    .aside { border-left: 1px solid var(--border-soft); padding: 22px 20px; background: #111e30; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    .aside-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; gap: 8px; }
     .aside h3 { margin: 0; font-size: 15px; }
     .state { border: 1px solid #42526a; background: #243349; color: #b9c8dd; font-size: 11px; border-radius: 100px; padding: 5px 9px; white-space: nowrap; }
     .state.ready { background: #183c33; border-color: #336c55; color: #8cefbe; }
@@ -108,13 +116,23 @@
     .copy { border: 1px solid #476b7a; border-radius: 8px; color: #a4e9d3; padding: 0 12px; background: #1e3d45; font-size: 12px; white-space: nowrap; }
     .copy:hover:not(:disabled) { background: #2b5d5d; color: white; }
     .copy:disabled { opacity: .35; cursor: not-allowed; }
-    .aside-tip { border-top: 1px solid #2a3b50; padding-top: 12px; color: #8ea7bb; font-size: 11px; line-height: 1.75; }
+    .coordinate-label { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 12px; font-weight: 680; color: #c5d8ec; }
+    .coordinate-label span { font-size: 11px; font-weight: 400; color: #8a9fb7; }
+    .coordinate-box { display: block; width: 100%; min-height: 260px; height: 300px; resize: vertical; border: 1px solid #3c6273; border-radius: 10px; padding: 14px; color: #d6fbe9; background: #081622; font: 13px/1.8 Consolas, "Cascadia Code", monospace; tab-size: 2; }
+    .coordinate-box:focus { outline: 2px solid #6ee0c0; outline-offset: 2px; }
+    .coordinate-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+    .coordinate-actions .copy { min-height: 39px; padding: 8px 13px; font-weight: 700; }
+    .coordinate-actions .primary-copy { background: #1e6b55; color: #effff6; border-color: #50b793; flex: 1 1 150px; }
+    .coordinate-actions .primary-copy:hover { background: #28856b; }
+    .coordinate-actions .secondary-copy { flex: 1 1 130px; }
+    .aside-tip { border-top: 1px solid #2a3b50; margin-top: 2px; padding-top: 12px; color: #8ea7bb; font-size: 11px; line-height: 1.75; }
+
     .aside-tip b { color: #a1ead1; }
     .footer { text-align: center; margin: -32px 0 32px; color: var(--muted); font-size: 11px; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%,20px); background: #174237; border: 1px solid #57c59c; color: #e1fff2; padding: 11px 16px; border-radius: 9px; font-size: 13px; z-index: 999; box-shadow: 0 13px 30px #0007; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100vw - 30px); text-align: center; }
     .toast.show { opacity: 1; transform: translate(-50%,0); }
-    @media (max-width: 970px) { .card-body { grid-template-columns: 1fr; } .aside { border-left: 0; border-top: 1px solid var(--border-soft); } .filename { max-width: 65vw; } .aside { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 16px; } .aside-head, .xy, .aside-tip { grid-column: 1 / -1; } }
-    @media (max-width: 600px) { .rotate-status { flex-basis: 100%; } .rotate-slider { max-width: none; } .rotate-bar { padding: 10px; gap: 7px; } .wrap { padding: 0 15px; } .top-inner { height: 73px; } .logo { height: 39px; width: 39px; } .brand h1 { font-size: 16px; } .brand .sub { font-size: 10px; } .private { padding: 7px 8px; font-size: 10px; } .intro { padding-top: 30px; } .intro h2 { font-size: 26px; } .intro p { font-size: 12px; } .drop { min-height: 148px; padding: 18px 10px; } .drop-title { font-size: 15px; } .drop-desc { font-size: 11px; } .add-button { display: block; margin: 10px auto 0; } .image-panel { padding: 12px; } .image-space { padding: 8px; min-height: 135px; } .aside { padding: 17px 13px; display: block; } .card-head { padding: 12px; } .filename { max-width: 58vw; } .step { font-size: 11px; padding: 8px; } .marker-label { font-size: 10px; padding: 5px; } .xy-cell span { font-size: 20px; } }
+    @media (max-width: 970px) { .card-body { grid-template-columns: 1fr; } .aside { border-left: 0; border-top: 1px solid var(--border-soft); } .filename { max-width: 65vw; } }
+    @media (max-width: 600px) { .rotate-status { flex-basis: 100%; } .rotate-bar { padding: 10px; gap: 7px; } .wrap { padding: 0 15px; } .top-inner { height: 73px; } .logo { height: 39px; width: 39px; } .brand h1 { font-size: 16px; } .brand .sub { font-size: 10px; } .private { padding: 7px 8px; font-size: 10px; } .intro { padding-top: 30px; } .intro h2 { font-size: 26px; } .intro p { font-size: 12px; } .drop { min-height: 148px; padding: 18px 10px; } .drop-title { font-size: 15px; } .drop-desc { font-size: 11px; } .add-button { display: block; margin: 10px auto 0; } .image-panel { padding: 12px; } .image-space { padding: 68px 48px; min-height: 180px; } .aside { padding: 17px 13px; } .card-head { padding: 12px; } .filename { max-width: 58vw; } .step { font-size: 11px; padding: 8px; } .marker-label { font-size: 10px; padding: 5px; } .coordinate-box { min-height: 210px; } }
   </style>
 </head>
 <body>
@@ -130,7 +148,7 @@
   <main class="wrap">
     <section class="intro">
       <h2>貼上圖片，<span>點出你要按的位置。</span></h2>
-      <p>讓大範圍圖片辨識後，仍能精確點擊指定按鈕。支援多張圖片、自由旋轉預覽與角度標示；點擊後會算出原圖像素座標與相對比例。</p>
+      <p>讓大範圍圖片辨識後，仍能精確點擊指定按鈕。支援多張圖片，像 Word 一樣拖曳圖片上方的旋轉控制點，即時查看角度；點選位置後右側一個大文字框可直接複製。</p>
       <div class="steps" aria-label="操作步驟">
         <div class="step"><strong>01</strong> Ctrl + V 貼上截圖</div>
         <div class="step"><strong>02</strong> 點選圖片目標位置</div>
@@ -206,9 +224,7 @@
       const normalizeAngle = degrees => ((Math.round(degrees) % 360) + 360) % 360;
       function rotationGeometry(p) {
         const angle = p.rotation * Math.PI / 180;
-        const quadrant = p.rotation % 90 === 0 ? p.rotation / 90 : -1;
-        const cos = quadrant >= 0 ? [1, 0, -1, 0][quadrant] : Math.cos(angle);
-        const sin = quadrant >= 0 ? [0, 1, 0, -1][quadrant] : Math.sin(angle);
+        const cos = Math.cos(angle), sin = Math.sin(angle);
         const width = Math.abs(p.w * cos) + Math.abs(p.h * sin);
         const height = Math.abs(p.w * sin) + Math.abs(p.h * cos);
         const scale = Math.min(1, 1200 / Math.max(width, height));
@@ -234,6 +250,18 @@
         ctx.drawImage(p.image, -p.w / 2, -p.h / 2, p.w, p.h);
         ctx.restore();
         card.querySelector('.marker-container').innerHTML = markerHtml(p);
+        updateRotationFrame(p, card, g, width, height);
+      }
+      function updateRotationFrame(p, card, geometry, width, height) {
+        const frame = card.querySelector('.selection-frame');
+        if (!frame) return;
+        frame.style.left = '50%';
+        frame.style.top = '50%';
+        frame.style.width = `${100 * p.w * geometry.scale / width}%`;
+        frame.style.height = `${100 * p.h * geometry.scale / height}%`;
+        frame.style.transform = `translate(-50%, -50%) rotate(${p.rotation}deg)`;
+        frame.style.setProperty('--counter-rotation', `-${p.rotation}deg`);
+        frame.querySelector('.rotation-bubble').textContent = `${p.rotation}°`;
       }
       const coordinate = photo => {
         if (!photo.point) return {xy:'', relative:'', python:'', x:'—', y:'—'};
@@ -245,8 +273,31 @@
           python:`pyautogui.click(match_x + ${x}, match_y + ${y})`
         };
       };
+      function coordinateSummary(p) {
+        const c = coordinate(p);
+        const lines = [
+          `圖片：${p.name}`,
+          `原圖尺寸：${p.w} × ${p.h} px`,
+          `預覽旋轉角度（順時針）：${p.rotation}°`,
+          ``,
+        ];
+        if (!p.point) {
+          lines.push('點擊位置：尚未選取', '', '請先在左側圖片上點選目標位置。');
+        } else {
+          lines.push(
+            `原圖像素座標 (X, Y)：${c.xy}`,
+            `相對座標 (0~1)：${c.relative}`,
+            `X 偏移：${c.x} px`,
+            `Y 偏移：${c.y} px`,
+            ``,
+            `Python (辨識到圖片左上角後)：`,
+            c.python,
+          );
+        }
+        return lines.join('\n');
+      }
       function cardTemplate(p) {
-        const c = coordinate(p), hasPoint = !!p.point;
+        const hasPoint = !!p.point;
         return `
           <article class="card" data-id="${p.id}">
             <div class="card-head">
@@ -255,25 +306,26 @@
             </div>
             <div class="card-body">
               <section class="image-panel">
-                <div class="image-space"><div class="image-stage"><canvas aria-label="${escapeHtml(p.name)}，點選欲點擊的位置" role="img" tabindex="0" data-action="point"></canvas><div class="marker-container">${markerHtml(p)}</div></div></div>
+                <div class="image-space"><div class="image-stage"><canvas aria-label="${escapeHtml(p.name)}，點選欲點擊的位置" role="img" tabindex="0" data-action="point"></canvas><div class="marker-container">${markerHtml(p)}</div><div class="selection-frame"><span class="rotation-stem"></span><button type="button" class="rotation-handle" data-action="rotate-handle" aria-label="拖曳旋轉圖片" title="像 Word 一樣，拖曳此控制點旋轉圖片；按住 Shift 每 15° 吸附。雙擊重設。">↻</button><span class="rotation-bubble">${p.rotation}°</span></div></div></div>
                 <div class="rotate-bar" aria-label="圖片旋轉設定">
                   <span class="rotate-status">旋轉角度：<output class="rotate-label">${p.rotation}°</output></span>
                   <button type="button" class="rotate-button" data-action="rotate-left" title="逆時針轉 90 度">↶ 左轉 90°</button>
                   <button type="button" class="rotate-button" data-action="rotate-right" title="順時針轉 90 度">↷ 右轉 90°</button>
                   <label class="rotate-hint" for="angle-${p.id}">自訂角度</label><input type="number" id="angle-${p.id}" class="rotate-angle" data-action="rotate-angle" min="-360" max="360" step="1" value="${p.rotation}" aria-label="旋轉角度（度）">
-                  <input type="range" class="rotate-slider" data-action="rotate-slider" min="0" max="359" step="1" value="${p.rotation}" aria-label="旋轉角度滑桿">
                   <button type="button" class="rotate-button" data-action="rotate-reset" title="恢復原始角度">重設 0°</button>
                 </div>
-                <div class="image-help"><span>⊕ <b>直接點圖片</b> 指定位置 · 可重複點擊調整</span><button type="button" class="center-btn" data-action="center">⌖ 設為圖片中心</button></div>
+                <div class="image-help"><span>↻ <b>拖曳圖片上方的旋轉控制點</b>，像 Word 一樣調角度（Shift 吸附 15°）；<b>直接點圖片</b> 指定位置</span><button type="button" class="center-btn" data-action="center">⌖ 設為圖片中心</button></div>
                 <div class="rotate-hint">旋轉只影響圖片預覽。右側的 X / Y 始終是<strong>原圖座標</strong>，用於未旋轉圖片的模板比對。</div>
               </section>
               <aside class="aside">
-                <div class="aside-head"><h3>點擊座標</h3><span class="state ${hasPoint?'ready':''}">${hasPoint?'✓ 已選定':'尚未選定'}</span></div>
-                <div class="xy"><div class="xy-cell"><small>X · 水平偏移</small><span class="x-value">${c.x}</span></div><div class="xy-cell"><small>Y · 垂直偏移</small><span class="y-value">${c.y}</span></div></div>
-                <div class="field"><label>原圖像素座標 <span class="note">從左上角 (0,0) 起算</span></label><div class="field-row"><input aria-label="原圖像素座標" readonly class="field-xy" value="${c.xy}" placeholder="點圖片後顯示"><button type="button" class="copy" data-copy="xy" ${hasPoint?'':'disabled'}>複製</button></div></div>
-                <div class="field"><label>相對座標 <span class="note">不受縮圖影響 · 0 ~ 1</span></label><div class="field-row"><input aria-label="相對座標" readonly class="field-relative" value="${c.relative}" placeholder="點圖片後顯示"><button type="button" class="copy" data-copy="relative" ${hasPoint?'':'disabled'}>複製</button></div></div>
-                <div class="field"><label>Python 點擊範例 <span class="note">OpenCV 辨識後使用</span></label><div class="field-row"><textarea aria-label="Python 點擊範例" rows="2" readonly class="field-python" placeholder="點圖片後顯示">${c.python}</textarea><button type="button" class="copy" data-copy="python" ${hasPoint?'':'disabled'}>複製</button></div></div>
-                <div class="aside-tip"><b>座標換算：</b>假設辨識到圖片的左上角是 <code>(match_x, match_y)</code>，實際要點的位置就是 <code>(match_x + X, match_y + Y)</code>。多螢幕時也適用，前提是辨識與點擊使用相同的桌面座標系。</div>
+                <div class="aside-head"><h3>座標與旋轉資訊</h3><span class="state ${hasPoint?'ready':''}">${hasPoint?'✓ 已選定':'尚未選定'}</span></div>
+                <label for="coordinate-${p.id}" class="coordinate-label">完整座標文字 <span>單一大文字框 · 可直接全選</span></label>
+                <textarea id="coordinate-${p.id}" class="coordinate-box" readonly spellcheck="false" aria-label="${escapeHtml(p.name)} 的全部座標資訊">${escapeHtml(coordinateSummary(p))}</textarea>
+                <div class="coordinate-actions">
+                  <button type="button" class="copy primary-copy" data-copy="all">⧉ 複製整個文字框</button>
+                  <button type="button" class="copy secondary-copy" data-copy="xy" ${hasPoint?'':'disabled'}>僅複製 (X, Y)</button>
+                </div>
+                <div class="aside-tip"><b>座標說明：</b>右側的 X / Y 是<strong>原圖座標</strong>，不會因預覽旋轉而改變。圖片辨識後，滑鼠點擊位置為 <code>(match_x + X, match_y + Y)</code>；角度會一併寫入文字框。</div>
               </aside>
             </div>
           </article>`;
@@ -306,33 +358,91 @@
         photo.rotation = normalizeAngle(degrees);
         card.querySelector('.rotate-label').textContent = `${photo.rotation}°`;
         card.querySelector('.rotate-angle').value = photo.rotation;
-        card.querySelector('.rotate-slider').value = photo.rotation;
+
         drawPreview(photo, card);
+        card.querySelector('.coordinate-box').value = coordinateSummary(photo);
       }
       function updateCard(photo) {
         const card=cardsEl.querySelector(`.card[data-id="${photo.id}"]`);
         if (!card) return;
-        const c=coordinate(photo);
         card.querySelector('.marker-container').innerHTML=markerHtml(photo);
-        card.querySelector('.x-value').textContent=c.x;
-        card.querySelector('.y-value').textContent=c.y;
-        card.querySelector('.field-xy').value=c.xy;
-        card.querySelector('.field-relative').value=c.relative;
-        card.querySelector('.field-python').value=c.python;
+        card.querySelector('.coordinate-box').value=coordinateSummary(photo);
         const state=card.querySelector('.state');
         state.classList.add('ready');state.textContent='✓ 已選定';
-        card.querySelectorAll('[data-copy]').forEach(b=>b.disabled=false);
+        card.querySelectorAll('[data-copy="xy"]').forEach(b=>b.disabled=false);
       }
       async function copyText(value, field) {
         try {
           if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
           else throw new Error('fallback');
         } catch {
-          field.focus(); field.select();
-          if (!document.execCommand('copy')) { notify('無法自動複製，請選取文字後按 Ctrl+C'); return; }
+          // The HTML also runs from file://, where Clipboard API may be unavailable.
+          // Select the requested VALUE, not the whole summary, for the XY-only button.
+          const helper=document.createElement('textarea');
+          helper.value=value;
+          helper.setAttribute('readonly','');
+          helper.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';
+          document.body.appendChild(helper);
+          helper.focus();
+          helper.select();
+          const success=document.execCommand('copy');
+          helper.remove();
+          if (!success) { field.focus(); field.select(); notify('無法自動複製，請選取文字後按 Ctrl+C'); return; }
         }
         notify('座標已複製到剪貼簿');
       }
+      // Rotate with a direct drag gesture, as in Microsoft Word.
+      // The visual rotation is clockwise-positive; exported click coordinates
+      // always remain in the original unrotated image coordinate system.
+      let activeRotationDrag = null;
+      function pointerAngle(event, centerX, centerY) {
+        return Math.atan2(event.clientY - centerY, event.clientX - centerX);
+      }
+      cardsEl.addEventListener('pointerdown', event => {
+        const handle=event.target.closest('[data-action="rotate-handle"]');
+        if (!handle || (event.pointerType === 'mouse' && event.button !== 0)) return;
+        const card=handle.closest('.card');
+        const photo=card && findPhoto(card.dataset.id);
+        if (!photo) return;
+        const rect=card.querySelector('.image-stage canvas').getBoundingClientRect();
+        const centerX=rect.left+rect.width/2;
+        const centerY=rect.top+rect.height/2;
+        activeRotationDrag={handle, card, photo, pointerId:event.pointerId, centerX, centerY,
+          previousAngle:pointerAngle(event,centerX,centerY), unroundedAngle:photo.rotation};
+        handle.setPointerCapture(event.pointerId);
+        card.classList.add('is-rotating');
+        event.preventDefault();
+        event.stopPropagation();
+      });
+      cardsEl.addEventListener('pointermove', event => {
+        const drag=activeRotationDrag;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        const nextAngle=pointerAngle(event, drag.centerX, drag.centerY);
+        const diff=Math.atan2(Math.sin(nextAngle-drag.previousAngle),Math.cos(nextAngle-drag.previousAngle));
+        drag.unroundedAngle+=diff*180/Math.PI;
+        drag.previousAngle=nextAngle;
+        const degrees=event.shiftKey ? Math.round(drag.unroundedAngle/15)*15 : Math.round(drag.unroundedAngle);
+        setRotation(drag.photo, degrees, drag.card);
+        event.preventDefault();
+      });
+      function finishRotation(event) {
+        if (!activeRotationDrag || (event && event.pointerId!==activeRotationDrag.pointerId)) return;
+        const drag=activeRotationDrag;
+        activeRotationDrag=null;
+        drag.card.classList.remove('is-rotating');
+        if (drag.handle.hasPointerCapture(drag.pointerId)) drag.handle.releasePointerCapture(drag.pointerId);
+      }
+      cardsEl.addEventListener('pointerup', finishRotation);
+      cardsEl.addEventListener('pointercancel', finishRotation);
+      cardsEl.addEventListener('lostpointercapture', finishRotation);
+      cardsEl.addEventListener('dblclick', event => {
+        const handle=event.target.closest('[data-action="rotate-handle"]');
+        if (!handle) return;
+        const card=handle.closest('.card');
+        const photo=card && findPhoto(card.dataset.id);
+        if (photo) setRotation(photo, 0, card);
+        event.preventDefault();
+      });
       cardsEl.addEventListener('click', event => {
         const card=event.target.closest('.card');if(!card) return;
         const photo=findPhoto(card.dataset.id);if(!photo) return;
@@ -347,8 +457,9 @@
         const copy=event.target.closest('[data-copy]');
         if (copy) {
           const key=copy.dataset.copy;
-          const input=card.querySelector(key==='xy'?'.field-xy':key==='relative'?'.field-relative':'.field-python');
-          if(input && input.value) copyText(input.value,input);
+          const input=card.querySelector('.coordinate-box');
+          const text=key==='xy' ? coordinate(photo).xy : input.value;
+          if(input && text) copyText(text,input);
           return;
         }
         const canvas=event.target.closest('canvas[data-action="point"]');
@@ -367,13 +478,6 @@
           photo.point={x:Math.floor(originalX),y:Math.floor(originalY)};
           updateCard(photo);
         }
-      });
-      cardsEl.addEventListener('input', event => {
-        const slider=event.target.closest('[data-action="rotate-slider"]');
-        if (!slider) return;
-        const card=slider.closest('.card');
-        const photo=card && findPhoto(card.dataset.id);
-        if (photo) setRotation(photo, Number(slider.value), card);
       });
       cardsEl.addEventListener('change', event => {
         const input=event.target.closest('[data-action="rotate-angle"]');
